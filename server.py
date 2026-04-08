@@ -38,6 +38,9 @@ if GEMINI_API_KEY:
 else:
     print("WARNING: No GEMINI_API_KEY found — /api/inventory will fail")
 
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+print(f"Gemini model: {GEMINI_MODEL}")
+
 # ── Model Loading ─────────────────────────────────────────────────────────────
 
 MODEL_ID = "microsoft/Florence-2-base"
@@ -250,7 +253,7 @@ async def inventory(req: InventoryRequest):
 
     t0 = time.time()
     response = await client.aio.models.generate_content(
-        model="gemini-2.0-flash",
+        model=GEMINI_MODEL,
         contents=parts,
         config=types.GenerateContentConfig(
             max_output_tokens=8000,
