@@ -74,6 +74,10 @@ async function startScan() {
     document.getElementById('s-detecting').textContent = 'Detecting...';
 
     try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            alert('Camera requires HTTPS. Please access this site via https://scan.bundlebox.ai');
+            return;
+        }
         stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 640 }, height: { ideal: 480 } }
         });

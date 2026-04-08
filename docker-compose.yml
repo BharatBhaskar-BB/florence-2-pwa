@@ -2,6 +2,8 @@ services:
   bundlebox:
     build: .
     container_name: bundlebox
+    expose:
+      - "8100"
     ports:
       - "8100:8100"
     env_file:
@@ -14,3 +16,22 @@ services:
               count: 1
               capabilities: [gpu]
     restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - bundlebox
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

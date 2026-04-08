@@ -1,0 +1,3 @@
+scan.bundlebox.ai {
+	reverse_proxy bundlebox:8100
+}
