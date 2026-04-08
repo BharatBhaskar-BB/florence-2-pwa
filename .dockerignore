@@ -7,3 +7,5 @@ test_florence2.py
 .git/
 .DS_Store
 *.egg-info/
+.env
+.env.example

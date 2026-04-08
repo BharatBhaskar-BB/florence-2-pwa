@@ -28,9 +28,14 @@ if ! nvidia-smi &>/dev/null; then
     exit 1
 fi
 
-if [[ -z "${GEMINI_API_KEY:-}" ]]; then
-    echo "WARNING: GEMINI_API_KEY not set. /api/inventory will fail."
-    echo "  Set it with:  export GEMINI_API_KEY=your_key"
+if [[ ! -f .env ]]; then
+    echo "ERROR: .env file not found."
+    echo "  cp .env.example .env  # then fill in your keys"
+    exit 1
+fi
+
+if ! grep -q 'GEMINI_API_KEY=.' .env || grep -q 'your_gemini_api_key_here' .env; then
+    echo "WARNING: GEMINI_API_KEY not set in .env — /api/inventory will fail."
     read -p "Continue without Gemini? [y/N] " -n 1 -r
     echo
     [[ $REPLY =~ ^[Yy]$ ]] || exit 1

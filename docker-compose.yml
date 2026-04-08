@@ -4,8 +4,8 @@ services:
     container_name: bundlebox
     ports:
       - "8100:8100"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    env_file:
+      - .env
     deploy:
       resources:
         reservations:
