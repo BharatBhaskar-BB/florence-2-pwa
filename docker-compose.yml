@@ -1,0 +1,16 @@
+services:
+  bundlebox:
+    build: .
+    container_name: bundlebox
+    ports:
+      - "8100:8100"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped

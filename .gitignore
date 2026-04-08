@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.pyc
+florence2_output/
+florence2-live-detection-context.txt
+.DS_Store
+*.egg-info/
