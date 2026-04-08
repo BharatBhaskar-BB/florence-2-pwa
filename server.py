@@ -304,43 +304,55 @@ async def test_ui():
     return FileResponse("index.html")
 
 
-# PWA static files and index
-@app.get("/manifest.json")
-async def manifest():
-    return FileResponse(os.path.join(PWA_DIR, "manifest.json"))
+# PWA static files — served at both root and /florence-scanner/ for local dev
+def _pwa_file(name, media_type=None):
+    path = os.path.join(PWA_DIR, name)
+    return FileResponse(path, media_type=media_type) if media_type else FileResponse(path)
 
-@app.get("/sw.js")
-async def service_worker():
-    return FileResponse(os.path.join(PWA_DIR, "sw.js"), media_type="application/javascript")
+_static_files = {
+    "manifest.json": "application/json",
+    "sw.js": "application/javascript",
+    "style.css": "text/css",
+    "app.js": "application/javascript",
+    "icon-192.png": "image/png",
+    "icon-512.png": "image/png",
+}
 
-@app.get("/style.css")
-async def style():
-    return FileResponse(os.path.join(PWA_DIR, "style.css"), media_type="text/css")
+for _prefix in ["", "/florence-scanner"]:
+    for _name, _mime in _static_files.items():
+        def _make_handler(n=_name, m=_mime):
+            async def handler():
+                return _pwa_file(n, m)
+            return handler
+        app.get(f"{_prefix}/{_name}")(_make_handler())
 
-@app.get("/app.js")
-async def app_js():
-    return FileResponse(os.path.join(PWA_DIR, "app.js"), media_type="application/javascript")
+    # Index page
+    def _make_index(prefix=_prefix):
+        async def index():
+            return FileResponse(os.path.join(PWA_DIR, "index.html"))
+        return index
+    app.get(f"{_prefix}/" if _prefix else "/")(_make_index())
 
-@app.get("/icon-192.png")
-async def icon_192():
-    return FileResponse(os.path.join(PWA_DIR, "icon-192.png"), media_type="image/png")
+    # Icon aliases
+    for _alias, _target in [("apple-touch-icon.png", "icon-192.png"), ("favicon.png", "icon-192.png")]:
+        def _make_alias(t=_target):
+            async def handler():
+                return _pwa_file(t, "image/png")
+            return handler
+        app.get(f"{_prefix}/{_alias}")(_make_alias())
 
-@app.get("/icon-512.png")
-async def icon_512():
-    return FileResponse(os.path.join(PWA_DIR, "icon-512.png"), media_type="image/png")
-
-@app.get("/apple-touch-icon.png")
-async def apple_touch_icon():
-    return FileResponse(os.path.join(PWA_DIR, "icon-192.png"), media_type="image/png")
-
-@app.get("/favicon.png")
-async def favicon():
-    return FileResponse(os.path.join(PWA_DIR, "icon-192.png"), media_type="image/png")
-
-@app.get("/")
-async def index():
-    return FileResponse(os.path.join(PWA_DIR, "index.html"))
+    # API endpoints under prefix (for local testing without Caddy)
+    if _prefix:
+        app.post(f"{_prefix}/api/detect", response_model=DetectResponse)(detect)
+        app.get(f"{_prefix}/api/health")(health)
+        app.post(f"{_prefix}/api/inventory", response_model=InventoryResponse)(inventory)
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8100)
+    ssl_kwargs = {}
+    cert = os.path.join(os.path.dirname(__file__), "cert.pem")
+    key = os.path.join(os.path.dirname(__file__), "key.pem")
+    if os.path.exists(cert) and os.path.exists(key):
+        ssl_kwargs = {"ssl_certfile": cert, "ssl_keyfile": key}
+        print(f"HTTPS enabled — https://0.0.0.0:8100")
+    uvicorn.run(app, host="0.0.0.0", port=8100, **ssl_kwargs)

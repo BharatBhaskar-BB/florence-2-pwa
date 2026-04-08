@@ -1,3 +1,8 @@
 scan.bundlebox.ai {
-	reverse_proxy bundlebox:8100
+	handle_path /florence-scanner/* {
+		reverse_proxy bundlebox:8100
+	}
+	handle /florence-scanner {
+		redir /florence-scanner/ permanent
+	}
 }

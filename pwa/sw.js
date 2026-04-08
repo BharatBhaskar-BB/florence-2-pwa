@@ -1,5 +1,5 @@
-const CACHE_NAME = 'bundlebox-v1';
-const ASSETS = ['/', '/app.js', '/style.css', '/manifest.json'];
+const CACHE_NAME = 'bundlebox-v2';
+const ASSETS = ['./', 'app.js', 'style.css', 'manifest.json'];
 
 self.addEventListener('install', (e) => {
     e.waitUntil(caches.open(CACHE_NAME).then(c => c.addAll(ASSETS)));

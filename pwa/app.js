@@ -1,6 +1,7 @@
 // ── BundleBox PWA — Live Detection + Gemini Inventory ──────────────────────
 
-const API = window.location.origin;
+const BASE_PATH = window.location.pathname.replace(/\/+$/, '');
+const API = window.location.origin + BASE_PATH;
 
 // ── State ──────────────────────────────────────────────────────────────────
 let scanning = false;
@@ -30,7 +31,7 @@ const COLORS = [
 
 // ── Init ───────────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => { });
+    navigator.serviceWorker.register(BASE_PATH + '/sw.js').catch(() => { });
 }
 checkServer();
 
