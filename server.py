@@ -6,6 +6,7 @@ and Gemini 2.0 Flash for batch inventory.
 """
 
 import base64
+import asyncio
 import io
 import json
 import os
@@ -13,7 +14,7 @@ import time
 
 import torch
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -201,6 +202,102 @@ async def health():
     return {"status": "ok", "device": str(DEVICE), "model": MODEL_ID}
 
 
+# ── Sync detection helper ─────────────────────────────────────────────────────
+
+def sync_detect(image_b64: str, task: str = "<OD>"):
+    """Run Florence-2 detection synchronously (for use in thread pool)."""
+    img_bytes = base64.b64decode(image_b64)
+    image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+    w, h = image.size
+
+    t0 = time.time()
+    inputs = processor(text=task, images=image, return_tensors="pt")
+    inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+    inputs.pop("attention_mask", None)
+
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs, max_new_tokens=1024, num_beams=1, do_sample=False
+        )
+
+    result_text = processor.batch_decode(outputs, skip_special_tokens=False)[0]
+    parsed = processor.post_process_generation(result_text, task=task, image_size=image.size)
+    elapsed = (time.time() - t0) * 1000
+
+    task_result = parsed.get(task, {})
+    return {
+        "bboxes": task_result.get("bboxes", []),
+        "labels": task_result.get("labels", []),
+        "time_ms": round(elapsed, 1),
+        "image_width": w,
+        "image_height": h,
+    }
+
+
+# ── WebSocket Detection ──────────────────────────────────────────────────────
+
+@app.websocket("/ws/detect")
+async def ws_detect(websocket: WebSocket):
+    await websocket.accept()
+    print("WebSocket client connected")
+
+    latest_frame = None
+    frame_available = asyncio.Event()
+    connected = True
+
+    async def receiver():
+        nonlocal latest_frame, connected
+        try:
+            while connected:
+                raw = await websocket.receive_text()
+                latest_frame = raw  # always overwrite — keep only latest
+                frame_available.set()
+        except WebSocketDisconnect:
+            connected = False
+            frame_available.set()
+        except Exception:
+            connected = False
+            frame_available.set()
+
+    async def processor():
+        nonlocal latest_frame, connected
+        try:
+            while connected:
+                await frame_available.wait()
+                frame_available.clear()
+
+                if not connected:
+                    break
+
+                if latest_frame is None:
+                    continue
+
+                raw = latest_frame
+                latest_frame = None  # consume it
+
+                data = json.loads(raw)
+                frame_id = data.get("frame_id", 0)
+                image_b64 = data["image"]
+                task = data.get("task", "<OD>")
+
+                result = await asyncio.to_thread(sync_detect, image_b64, task)
+                result["frame_id"] = frame_id
+
+                if connected:
+                    await websocket.send_json(result)
+        except WebSocketDisconnect:
+            connected = False
+        except Exception as e:
+            print(f"WS processor error: {e}")
+            connected = False
+
+    recv_task = asyncio.create_task(receiver())
+    proc_task = asyncio.create_task(processor())
+
+    await asyncio.gather(recv_task, proc_task, return_exceptions=True)
+    print("WebSocket client disconnected")
+
+
 # ── Gemini Batch Inventory ────────────────────────────────────────────────────
 
 class InventoryRequest(BaseModel):
@@ -219,15 +316,22 @@ class InventoryResponse(BaseModel):
     cost: float = 0.0
 
 
-INVENTORY_PROMPT = """You are a professional moving estimator. Analyze these video frames from a room scan and create a complete inventory of all visible items.
+INVENTORY_PROMPT = """You are a professional moving inventory specialist. These are frames from a continuous camera pan around a room. Your job is to create a complete inventory of ALL distinct physical objects visible across all frames.
 
-Rules:
-- List every distinct physical object you can see
-- Count each item type by the MAXIMUM number visible in any single frame (not sum across frames)
-- Use specific names (e.g., "dining chair" not just "chair", "floor lamp" not just "lamp")
-- Include size estimate: "small", "medium", "large", or "extra-large"
-- Do NOT count the same object twice across different frames — these are frames from a continuous camera pan
-- Group similar items (e.g., "dining chair ×4" if you see 4 identical chairs)
+IMPORTANT — This is a PANNING camera scan:
+- The camera moves continuously, so objects appear in some frames and NOT in others.
+- Identify ALL unique objects by tracking them across frames. An object seen in frames 1-3 and a DIFFERENT object seen in frame 11 are SEPARATE items — count both.
+- If two objects look different (different color, size, or shape), they are SEPARATE items even if they are the same category.
+- For identical objects grouped together in ONE frame (e.g., 4 dining chairs around a table), count them all.
+- Do NOT double-count the SAME individual object appearing across multiple consecutive frames.
+
+Detection rules:
+- List EVERY distinct physical object — furniture, electronics, bags, bottles, containers, clothing, decor, appliances, etc.
+- Be thorough: look carefully at all areas of each frame including edges, backgrounds, and partially visible objects.
+- Use specific descriptive names (e.g., "white water bottle", "red metallic bottle", "black backpack").
+- Include color in the name when it helps distinguish items.
+- Size estimate: "small", "medium", "large", or "extra-large".
+- Ignore fixed room features: walls, floor, ceiling, doors, windows, power outlets, light switches.
 
 Return JSON: {"items": [{"name": "item name", "count": N, "size": "small|medium|large|extra-large", "notes": "optional detail"}]}
 """
@@ -294,6 +398,49 @@ async def inventory(req: InventoryRequest):
     return InventoryResponse(items=items, cost=round(cost, 4))
 
 
+# ── Upload Artifacts ──────────────────────────────────────────────────────────
+
+ARTIFACTS_DIR = os.path.join(os.path.dirname(__file__), "artifacts")
+
+
+@app.post("/api/upload-artifacts")
+async def upload_artifacts(
+    metadata: str = Form(...),
+    video: UploadFile | None = File(None),
+    frames: list[UploadFile] = File(default=[]),
+):
+    from datetime import datetime
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    scan_dir = os.path.join(ARTIFACTS_DIR, f"scan_{ts}")
+    frames_dir = os.path.join(scan_dir, "keyframes")
+    os.makedirs(frames_dir, exist_ok=True)
+
+    # Save video
+    if video and video.filename:
+        video_path = os.path.join(scan_dir, video.filename)
+        content = await video.read()
+        with open(video_path, "wb") as f:
+            f.write(content)
+        print(f"Saved video: {video_path} ({len(content) / 1024 / 1024:.1f}MB)")
+
+    # Save key frames
+    for frame in frames:
+        if frame.filename:
+            frame_path = os.path.join(frames_dir, frame.filename)
+            content = await frame.read()
+            with open(frame_path, "wb") as f:
+                f.write(content)
+    print(f"Saved {len(frames)} key frames to {frames_dir}")
+
+    # Save metadata (inventory result + stats)
+    meta_path = os.path.join(scan_dir, "metadata.json")
+    with open(meta_path, "w") as f:
+        json.dump(json.loads(metadata), f, indent=2)
+
+    print(f"Artifacts saved to {scan_dir}")
+    return {"status": "ok", "path": f"artifacts/scan_{ts}", "frames": len(frames)}
+
+
 # ── Serve PWA frontend ────────────────────────────────────────────────────────
 
 PWA_DIR = os.path.join(os.path.dirname(__file__), "pwa")
@@ -346,6 +493,8 @@ for _prefix in ["", "/florence-scanner"]:
         app.post(f"{_prefix}/api/detect", response_model=DetectResponse)(detect)
         app.get(f"{_prefix}/api/health")(health)
         app.post(f"{_prefix}/api/inventory", response_model=InventoryResponse)(inventory)
+        app.post(f"{_prefix}/api/upload-artifacts")(upload_artifacts)
+        app.websocket(f"{_prefix}/ws/detect")(ws_detect)
 
 
 if __name__ == "__main__":

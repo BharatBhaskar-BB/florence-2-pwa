@@ -16,18 +16,100 @@ let capturedFrames = []; // base64 frames for Gemini batch
 const CAPTURE_INTERVAL = 2000; // capture a key frame every 2s for Gemini
 let lastCaptureTime = 0;
 let scanStats = { totalMs: 0, inferenceSum: 0, inferenceCount: 0 };
+let mediaRecorder = null;
+let recordedChunks = [];
+let recordedBlob = null;
+let lastInventoryResult = null;
 
 const video = document.getElementById('s-video');
 const canvas = document.getElementById('s-canvas');
 const ctx = canvas.getContext('2d');
 const captureCanvas = document.createElement('canvas');
 const captureCtx = captureCanvas.getContext('2d');
+const resizeCanvas = document.createElement('canvas');
+const resizeCtx = resizeCanvas.getContext('2d');
+
+// WebSocket state
+let ws = null;
+let wsSendInterval = null;
+let wsFrameId = 0;
+const frameStore = new Map(); // frame_id → ImageData (for synced mode)
 
 // ── Colors ─────────────────────────────────────────────────────────────────
 const COLORS = [
     '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF',
     '#FF8000', '#8000FF', '#00FF80', '#FF0080', '#0080FF', '#80FF00',
 ];
+
+// ── Detection Filters ─────────────────────────────────────────────────────
+
+// #2: Label normalization — merge over-granular labels into parent categories
+const LABEL_MAP = {
+    'door handle': 'door', 'hinge': null, 'door knob': 'door',
+    'bottle cap': 'bottle', 'wine bottle': 'bottle',
+    'computer keyboard': 'keyboard', 'computer mouse': 'mouse',
+    'computer monitor': 'monitor', 'television': 'TV',
+    'kitchen & dining room table': 'table', 'coffee table': 'table',
+    'dining table': 'table', 'kitchen table': 'table',
+    'power plugs and sockets': null, 'wall socket': null, 'light switch': null,
+    'plastic bag': 'bag', 'handbag': 'bag',
+    'flowerpot': 'plant pot', 'houseplant': 'plant',
+    'couch': 'sofa', 'loveseat': 'sofa',
+    'swivel chair': 'office chair', 'armchair': 'chair',
+};
+
+// #1: Temporal consistency — track label appearances over recent frames
+const TEMPORAL_WINDOW = 3;
+const TEMPORAL_MIN = 2;
+let recentFrameLabels = []; // array of Sets, last N frames
+
+function normalizeLabel(label) {
+    const lower = label.toLowerCase();
+    if (lower in LABEL_MAP) return LABEL_MAP[lower];
+    return label;
+}
+
+function filterDetections(bboxes, labels, imgW, imgH) {
+    const frameArea = imgW * imgH;
+    const MIN_AREA_RATIO = 0.02; // #4: min 2% of frame
+
+    const filtered = { bboxes: [], labels: [] };
+    for (let i = 0; i < bboxes.length; i++) {
+        const [x1, y1, x2, y2] = bboxes[i];
+
+        // #4: Box size filter
+        const boxArea = (x2 - x1) * (y2 - y1);
+        if (boxArea / frameArea < MIN_AREA_RATIO) continue;
+
+        // #2: Label normalization
+        const normalized = normalizeLabel(labels[i]);
+        if (normalized === null) continue; // explicitly removed
+
+        filtered.bboxes.push(bboxes[i]);
+        filtered.labels.push(normalized);
+    }
+    return filtered;
+}
+
+function updateTemporalFilter(frameLabels) {
+    recentFrameLabels.push(new Set(frameLabels));
+    if (recentFrameLabels.length > TEMPORAL_WINDOW) recentFrameLabels.shift();
+
+    // Count appearances across recent frames
+    const counts = new Map();
+    for (const frameSet of recentFrameLabels) {
+        for (const label of frameSet) {
+            counts.set(label, (counts.get(label) || 0) + 1);
+        }
+    }
+
+    // Only labels with >= TEMPORAL_MIN appearances go to ticker
+    const stable = new Set();
+    for (const [label, count] of counts) {
+        if (count >= TEMPORAL_MIN) stable.add(label);
+    }
+    return stable;
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
@@ -64,11 +146,14 @@ function goHome() {
 // ── Start Scan ─────────────────────────────────────────────────────────────
 async function startScan() {
     maxDuration = parseInt(document.getElementById('h-duration').value);
+    renderMode = document.getElementById('h-render').value;
+    lastDetection = null;
     detectedLabels.clear();
+    recentFrameLabels = [];
     capturedFrames = [];
     frameCount = 0;
     scanStats = { totalMs: 0, inferenceSum: 0, inferenceCount: 0 };
-    lastCaptureTime = 0;
+    lastCaptureTime = Date.now() + 2000; // skip first 2s to avoid blank frames
     paused = false;
     document.getElementById('s-pause').textContent = '⏸ Pause';
     document.getElementById('s-ticker').innerHTML = '';
@@ -84,6 +169,7 @@ async function startScan() {
         });
         video.srcObject = stream;
         await video.play();
+        initCameraControls();
     } catch (e) {
         alert('Camera access denied: ' + e.message);
         return;
@@ -92,9 +178,26 @@ async function startScan() {
     showScreen('scan');
     scanning = true;
     startTime = Date.now();
+    if (renderMode === 'smooth') {
+        startOverlaySync();
+    }
+
+    // Start recording video
+    recordedChunks = [];
+    recordedBlob = null;
+    lastInventoryResult = null;
+    try {
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp8' });
+        mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+        mediaRecorder.onstop = () => { recordedBlob = new Blob(recordedChunks, { type: 'video/webm' }); };
+        mediaRecorder.start(1000); // chunk every 1s
+    } catch (e) {
+        console.warn('MediaRecorder not supported:', e);
+        mediaRecorder = null;
+    }
 
     timerInterval = setInterval(updateTimer, 500);
-    detectLoop();
+    connectWebSocket();
 }
 
 function updateTimer() {
@@ -112,67 +215,234 @@ function updateTimer() {
 function togglePause() {
     paused = !paused;
     document.getElementById('s-pause').textContent = paused ? '▶ Resume' : '⏸ Pause';
-    if (!paused && scanning) detectLoop();
+    // WS sending interval handles pause check automatically
 }
 
-// ── Detection Loop ─────────────────────────────────────────────────────────
-async function detectLoop() {
-    if (!scanning || paused) return;
+// ── Detection via WebSocket ────────────────────────────────────────────────
+// Two render modes:
+//   "smooth"  — 30fps native <video> + transparent canvas overlay (boxes lag during pan)
+//   "synced"  — coupled: canvas shows captured frame + boxes together (synced perfectly)
+
+let lastDetection = null;
+let renderMode = 'smooth';
+
+function startOverlaySync() {
+    // Only used in "smooth" mode — 30fps render loop for box overlay
+    function renderLoop() {
+        if (!scanning || renderMode !== 'smooth') return;
+        const vw = video.videoWidth || 640;
+        const vh = video.videoHeight || 480;
+        if (canvas.width !== vw || canvas.height !== vh) {
+            canvas.width = vw;
+            canvas.height = vh;
+        }
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (lastDetection) {
+            const style = document.getElementById('h-style').value;
+            drawDetections(ctx, lastDetection.bboxes, lastDetection.labels,
+                lastDetection.scaleX, lastDetection.scaleY, style);
+        }
+
+        requestAnimationFrame(renderLoop);
+    }
+    requestAnimationFrame(renderLoop);
+}
+
+function connectWebSocket() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${location.host}${BASE_PATH}/ws/detect`;
+    console.log('Connecting WebSocket:', wsUrl);
+
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        console.log('WebSocket connected');
+        // Start sending frames at ~100ms interval
+        wsSendInterval = setInterval(sendFrame, 100);
+    };
+
+    ws.onmessage = (e) => {
+        handleDetectionResult(JSON.parse(e.data));
+    };
+
+    ws.onclose = () => {
+        console.log('WebSocket closed');
+        clearInterval(wsSendInterval);
+        wsSendInterval = null;
+    };
+
+    ws.onerror = (e) => {
+        console.error('WebSocket error:', e);
+    };
+}
+
+function disconnectWebSocket() {
+    clearInterval(wsSendInterval);
+    wsSendInterval = null;
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+    frameStore.clear();
+    wsFrameId = 0;
+}
+
+// ── Camera Controls (Zoom + Torch) ─────────────────────────────────────────
+
+let torchOn = false;
+
+function initCameraControls() {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+
+    // Zoom
+    const zoomWrap = document.getElementById('s-zoom-wrap');
+    const zoomSlider = document.getElementById('s-zoom');
+    if (caps.zoom) {
+        zoomWrap.style.display = 'flex';
+        zoomSlider.min = caps.zoom.min;
+        zoomSlider.max = Math.min(caps.zoom.max, 5); // cap at 5x
+        zoomSlider.step = caps.zoom.step || 0.1;
+        zoomSlider.value = caps.zoom.min;
+        document.getElementById('s-zoom-label').textContent = `${parseFloat(caps.zoom.min).toFixed(1)}x`;
+    } else {
+        zoomWrap.style.display = 'none';
+    }
+
+    // Torch
+    const torchBtn = document.getElementById('s-torch');
+    if (caps.torch) {
+        torchBtn.style.display = 'flex';
+        torchBtn.classList.remove('active');
+        torchOn = false;
+    } else {
+        torchBtn.style.display = 'none';
+    }
+}
+
+function setZoom(val) {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    const v = parseFloat(val);
+    document.getElementById('s-zoom-label').textContent = `${v.toFixed(1)}x`;
+    try {
+        track.applyConstraints({ advanced: [{ zoom: v }] });
+    } catch (e) {
+        console.warn('Zoom not supported:', e);
+    }
+}
+
+function toggleTorch() {
+    if (!stream) return;
+    const track = stream.getVideoTracks()[0];
+    if (!track) return;
+    torchOn = !torchOn;
+    const btn = document.getElementById('s-torch');
+    btn.classList.toggle('active', torchOn);
+    try {
+        track.applyConstraints({ advanced: [{ torch: torchOn }] });
+    } catch (e) {
+        console.warn('Torch not supported:', e);
+        torchOn = false;
+        btn.classList.remove('active');
+    }
+}
+
+function sendFrame() {
+    if (!scanning || paused || !ws || ws.readyState !== WebSocket.OPEN) return;
 
     const vw = video.videoWidth || 640;
     const vh = video.videoHeight || 480;
 
-    // Capture to offscreen canvas
+    // Capture full-res to offscreen canvas
     captureCanvas.width = vw;
     captureCanvas.height = vh;
     captureCtx.drawImage(video, 0, 0, vw, vh);
 
-    const task = document.getElementById('h-task').value;
-    const base64 = captureCanvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+    const frameId = wsFrameId++;
 
-    // Capture key frame for Gemini every N seconds
+    // In synced mode, store the full-res frame for later rendering
+    if (renderMode === 'synced') {
+        frameStore.set(frameId, captureCtx.getImageData(0, 0, vw, vh));
+        // Keep only last 10 frames to limit memory
+        if (frameStore.size > 10) {
+            const oldest = frameStore.keys().next().value;
+            frameStore.delete(oldest);
+        }
+    }
+
+    // Resize for inference if needed
+    const targetW = parseInt(document.getElementById('h-resolution').value);
+    let sendCanvas = captureCanvas;
+    if (targetW < vw) {
+        const targetH = Math.round(targetW * vh / vw);
+        resizeCanvas.width = targetW;
+        resizeCanvas.height = targetH;
+        resizeCtx.drawImage(captureCanvas, 0, 0, targetW, targetH);
+        sendCanvas = resizeCanvas;
+    }
+
+    const base64 = sendCanvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+
+    // Capture key frame for Gemini (always full-res)
     const now = Date.now();
     if (now - lastCaptureTime >= CAPTURE_INTERVAL) {
-        capturedFrames.push(base64);
+        capturedFrames.push(captureCanvas.toDataURL('image/jpeg', 0.7).split(',')[1]);
         lastCaptureTime = now;
     }
 
-    try {
-        const t0 = performance.now();
-        const res = await fetch(API + '/api/detect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: base64, task }),
-        });
-        const data = await res.json();
-        const elapsed = performance.now() - t0;
+    const task = document.getElementById('h-task').value;
+    ws.send(JSON.stringify({ frame_id: frameId, image: base64, task }));
+}
 
-        // Draw to visible canvas
-        canvas.width = vw;
-        canvas.height = vh;
-        ctx.drawImage(captureCanvas, 0, 0);
+function handleDetectionResult(data) {
+    const bboxes = data.bboxes;
+    const labels = data.labels;
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
 
-        const scaleX = vw / data.image_width;
-        const scaleY = vh / data.image_height;
-        const style = document.getElementById('h-style').value;
-        drawDetections(ctx, data.bboxes, data.labels, scaleX, scaleY, style);
-
-        frameCount++;
-        scanStats.inferenceSum += data.time_ms;
-        scanStats.inferenceCount++;
-
-        // Update ticker with newly seen labels
-        for (const l of data.labels) detectedLabels.add(l);
-        updateTicker();
-        document.getElementById('s-detecting').textContent = `${detectedLabels.size} types found`;
-
-    } catch (e) {
-        // silent — keep scanning
+    if (renderMode === 'synced') {
+        // Retrieve the stored frame that matches this result
+        const stored = frameStore.get(data.frame_id);
+        if (stored) {
+            canvas.width = stored.width;
+            canvas.height = stored.height;
+            ctx.putImageData(stored, 0, 0);
+            const scaleX = stored.width / data.image_width;
+            const scaleY = stored.height / data.image_height;
+            const style = document.getElementById('h-style').value;
+            drawDetections(ctx, bboxes, labels, scaleX, scaleY, style);
+        }
+        // Clean up frames older than this result
+        for (const key of frameStore.keys()) {
+            if (key <= data.frame_id) frameStore.delete(key);
+        }
+    } else {
+        // Smooth: store result for the 30fps renderLoop
+        lastDetection = {
+            bboxes,
+            labels,
+            scaleX: vw / data.image_width,
+            scaleY: vh / data.image_height,
+            timestamp: Date.now(),
+        };
     }
 
-    if (scanning && !paused) {
-        requestAnimationFrame(detectLoop);
-    }
+    frameCount++;
+    scanStats.inferenceSum += data.time_ms;
+    scanStats.inferenceCount++;
+
+    const badge = document.getElementById('s-inference-ms');
+    if (badge) badge.textContent = `⚡ ${Math.round(data.time_ms)}ms`;
+
+    detectedLabels = new Set(labels);
+    updateTicker();
+    document.getElementById('s-detecting').textContent = `${detectedLabels.size} types found`;
 }
 
 function drawDetections(ctx, bboxes, labels, scaleX, scaleY, style) {
@@ -218,7 +488,19 @@ function finishScan() {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
     scanStats.totalMs = elapsed * 1000;
 
+    // Stop scanning UI
+    const scanline = document.getElementById('s-scanline');
+    if (scanline) scanline.classList.remove('active');
+    lastDetection = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Disconnect WebSocket
+    disconnectWebSocket();
+
     // Stop camera
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     video.srcObject = null;
 
@@ -250,6 +532,10 @@ function stopScan() {
     scanning = false;
     paused = false;
     clearInterval(timerInterval);
+    disconnectWebSocket();
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+    }
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     video.srcObject = null;
 }
@@ -281,6 +567,7 @@ async function runGeminiBatch() {
         }
 
         const data = await res.json();
+        lastInventoryResult = data;
         showInventory(data);
     } catch (e) {
         showInventoryError(e.message);
@@ -334,5 +621,70 @@ function shareResults() {
         navigator.share({ title: 'BundleBox Scan Results', text }).catch(() => { });
     } else {
         navigator.clipboard.writeText(text).then(() => alert('Copied to clipboard'));
+    }
+}
+
+// ── Upload Artifacts ────────────────────────────────────────────────────────
+async function uploadArtifacts() {
+    const btn = document.getElementById('r-upload-btn');
+    const origText = btn.textContent;
+    btn.textContent = '⏳ Uploading...';
+    btn.disabled = true;
+
+    try {
+        const formData = new FormData();
+
+        // 1. Video recording
+        if (recordedBlob) {
+            formData.append('video', recordedBlob, 'scan.webm');
+        }
+
+        // 2. Key frames sent to Gemini
+        let frames = capturedFrames;
+        if (frames.length > 15) {
+            const step = frames.length / 15;
+            frames = Array.from({ length: 15 }, (_, i) => capturedFrames[Math.floor(i * step)]);
+        }
+        for (let i = 0; i < frames.length; i++) {
+            const blob = await fetch('data:image/jpeg;base64,' + frames[i]).then(r => r.blob());
+            formData.append('frames', blob, `frame_${i.toString().padStart(3, '0')}.jpg`);
+        }
+
+        // 3. Inventory result + stats
+        const meta = {
+            inventory: lastInventoryResult,
+            stats: {
+                scanDuration: scanStats.totalMs,
+                framesProcessed: frameCount,
+                keyFramesCaptured: capturedFrames.length,
+                keyFramesSent: frames.length,
+                avgInferenceMs: scanStats.inferenceCount > 0 ? Math.round(scanStats.inferenceSum / scanStats.inferenceCount) : 0,
+                liveLabels: [...detectedLabels].sort(),
+            },
+            timestamp: new Date().toISOString(),
+        };
+        formData.append('metadata', JSON.stringify(meta));
+
+        const res = await fetch(API + '/api/upload-artifacts', {
+            method: 'POST',
+            body: formData,
+        });
+
+        if (!res.ok) throw new Error(`Server error ${res.status}`);
+        const result = await res.json();
+        btn.textContent = '✅ Uploaded!';
+        btn.style.background = '#16a34a';
+        btn.style.color = '#fff';
+        alert(`Artifacts saved to: ${result.path}`);
+    } catch (e) {
+        btn.textContent = '❌ Failed';
+        alert('Upload failed: ' + e.message);
+    } finally {
+        setTimeout(() => {
+            btn.textContent = origText;
+            btn.disabled = false;
+            btn.style.background = '';
+            btn.style.color = '';
+        }, 3000);
     }
 }

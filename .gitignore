@@ -8,3 +8,4 @@ florence2-live-detection-context.txt
 .env
 cert.pem
 key.pem
+artifacts/
