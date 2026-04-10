@@ -22,6 +22,8 @@ from PIL import Image
 from pydantic import BaseModel
 from transformers import AutoModelForCausalLM, AutoProcessor
 
+from segmentor import available_segmentors, get_predictor, segment_bboxes
+
 # ── Load Gemini API key ───────────────────────────────────────────────────────
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
@@ -88,7 +90,9 @@ class DetectResponse(BaseModel):
     bboxes: list[list[float]]
     labels: list[str]
     polygons: list[list[list[float]]] | None = None  # per-object polygon points
+    masks: list[list[list[float]]] | None = None  # SAM segmentation masks as polygons
     time_ms: float
+    seg_time_ms: float = 0.0
     image_width: int
     image_height: int
 
@@ -199,13 +203,20 @@ async def detect_segment(req: DetectRequest):
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok", "device": str(DEVICE), "model": MODEL_ID}
+    return {
+        "status": "ok",
+        "device": str(DEVICE),
+        "model": MODEL_ID,
+        "segmentors": available_segmentors(),
+    }
 
 
 # ── Sync detection helper ─────────────────────────────────────────────────────
 
-def sync_detect(image_b64: str, task: str = "<OD>"):
+def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
     """Run Florence-2 detection synchronously (for use in thread pool)."""
+    import numpy as np
+
     img_bytes = base64.b64decode(image_b64)
     image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
     w, h = image.size
@@ -225,13 +236,30 @@ def sync_detect(image_b64: str, task: str = "<OD>"):
     elapsed = (time.time() - t0) * 1000
 
     task_result = parsed.get(task, {})
-    return {
-        "bboxes": task_result.get("bboxes", []),
-        "labels": task_result.get("labels", []),
+    bboxes = task_result.get("bboxes", [])
+    labels = task_result.get("labels", [])
+
+    result = {
+        "bboxes": bboxes,
+        "labels": labels,
         "time_ms": round(elapsed, 1),
+        "seg_time_ms": 0.0,
         "image_width": w,
         "image_height": h,
     }
+
+    # Optional SAM segmentation on detected bboxes
+    if segmentor != "none" and bboxes:
+        try:
+            pred = get_predictor(segmentor, DEVICE)
+            image_np = np.array(image)
+            masks, seg_ms = segment_bboxes(pred, image_np, bboxes)
+            result["masks"] = masks
+            result["seg_time_ms"] = round(seg_ms, 1)
+        except Exception as e:
+            print(f"Segmentation error ({segmentor}): {e}")
+
+    return result
 
 
 # ── WebSocket Detection ──────────────────────────────────────────────────────
@@ -279,8 +307,9 @@ async def ws_detect(websocket: WebSocket):
                 frame_id = data.get("frame_id", 0)
                 image_b64 = data["image"]
                 task = data.get("task", "<OD>")
+                segmentor = data.get("segmentor", "none")
 
-                result = await asyncio.to_thread(sync_detect, image_b64, task)
+                result = await asyncio.to_thread(sync_detect, image_b64, task, segmentor)
                 result["frame_id"] = frame_id
 
                 if connected:

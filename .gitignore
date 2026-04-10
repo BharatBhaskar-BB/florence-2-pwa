@@ -9,3 +9,4 @@ florence2-live-detection-context.txt
 cert.pem
 key.pem
 artifacts/
+weights/

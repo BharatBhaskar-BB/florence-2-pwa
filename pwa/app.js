@@ -125,6 +125,23 @@ async function checkServer() {
             `<span class="status-dot ok"></span>Connected`;
         document.getElementById('h-device').textContent = d.device;
         document.getElementById('h-start').disabled = false;
+
+        // Populate available segmentors
+        const segmentors = d.segmentors || ['none'];
+        const segSelect = document.getElementById('h-segmentor');
+        const segInfo = document.getElementById('h-segmentors');
+        if (segSelect) {
+            for (const opt of segSelect.options) {
+                if (opt.value !== 'none') {
+                    opt.disabled = !segmentors.includes(opt.value);
+                    if (opt.disabled) opt.text += ' (not installed)';
+                }
+            }
+        }
+        if (segInfo) {
+            const available = segmentors.filter(s => s !== 'none');
+            segInfo.textContent = available.length > 0 ? available.join(', ') : 'None installed';
+        }
     } catch {
         document.getElementById('h-server-status').innerHTML =
             `<span class="status-dot err"></span>Offline`;
@@ -240,8 +257,11 @@ function startOverlaySync() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (lastDetection) {
             const style = document.getElementById('h-style').value;
+            if (lastDetection.masks) {
+                drawMasks(ctx, lastDetection.masks, lastDetection.scaleX, lastDetection.scaleY);
+            }
             drawDetections(ctx, lastDetection.bboxes, lastDetection.labels,
-                lastDetection.scaleX, lastDetection.scaleY, style);
+                lastDetection.scaleX, lastDetection.scaleY, style, lastDetection.masks);
         }
 
         requestAnimationFrame(renderLoop);
@@ -397,12 +417,14 @@ function sendFrame() {
     }
 
     const task = document.getElementById('h-task').value;
-    ws.send(JSON.stringify({ frame_id: frameId, image: base64, task }));
+    const segmentor = document.getElementById('h-segmentor').value;
+    ws.send(JSON.stringify({ frame_id: frameId, image: base64, task, segmentor }));
 }
 
 function handleDetectionResult(data) {
     const bboxes = data.bboxes;
     const labels = data.labels;
+    const masks = data.masks || null;
     const vw = video.videoWidth || 640;
     const vh = video.videoHeight || 480;
 
@@ -416,7 +438,8 @@ function handleDetectionResult(data) {
             const scaleX = stored.width / data.image_width;
             const scaleY = stored.height / data.image_height;
             const style = document.getElementById('h-style').value;
-            drawDetections(ctx, bboxes, labels, scaleX, scaleY, style);
+            if (masks) drawMasks(ctx, masks, scaleX, scaleY);
+            drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, masks);
         }
         // Clean up frames older than this result
         for (const key of frameStore.keys()) {
@@ -427,6 +450,7 @@ function handleDetectionResult(data) {
         lastDetection = {
             bboxes,
             labels,
+            masks,
             scaleX: vw / data.image_width,
             scaleY: vh / data.image_height,
             timestamp: Date.now(),
@@ -434,18 +458,50 @@ function handleDetectionResult(data) {
     }
 
     frameCount++;
-    scanStats.inferenceSum += data.time_ms;
+    const totalInfMs = data.time_ms + (data.seg_time_ms || 0);
+    scanStats.inferenceSum += totalInfMs;
     scanStats.inferenceCount++;
 
     const badge = document.getElementById('s-inference-ms');
-    if (badge) badge.textContent = `⚡ ${Math.round(data.time_ms)}ms`;
+    if (badge) {
+        let text = `⚡ ${Math.round(data.time_ms)}ms`;
+        if (data.seg_time_ms) text += ` +${Math.round(data.seg_time_ms)}ms seg`;
+        badge.textContent = text;
+    }
 
     detectedLabels = new Set(labels);
     updateTicker();
     document.getElementById('s-detecting').textContent = `${detectedLabels.size} types found`;
 }
 
-function drawDetections(ctx, bboxes, labels, scaleX, scaleY, style) {
+function drawMasks(ctx, masks, scaleX, scaleY) {
+    for (let i = 0; i < masks.length; i++) {
+        const poly = masks[i];
+        if (!poly || poly.length < 3) continue;
+
+        const color = COLORS[i % COLORS.length];
+        const r = parseInt(color.slice(1, 3), 16);
+        const g = parseInt(color.slice(3, 5), 16);
+        const b = parseInt(color.slice(5, 7), 16);
+
+        // Filled mask
+        ctx.fillStyle = `rgba(${r},${g},${b},0.3)`;
+        ctx.beginPath();
+        ctx.moveTo(poly[0][0] * scaleX, poly[0][1] * scaleY);
+        for (let j = 1; j < poly.length; j++) {
+            ctx.lineTo(poly[j][0] * scaleX, poly[j][1] * scaleY);
+        }
+        ctx.closePath();
+        ctx.fill();
+
+        // Contour outline
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+    }
+}
+
+function drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, masks) {
     ctx.font = 'bold 12px -apple-system, sans-serif';
     for (let i = 0; i < bboxes.length; i++) {
         const [x1, y1, x2, y2] = bboxes[i];
@@ -453,22 +509,37 @@ function drawDetections(ctx, bboxes, labels, scaleX, scaleY, style) {
         const sx1 = x1 * scaleX, sy1 = y1 * scaleY;
         const w = (x2 - x1) * scaleX, h = (y2 - y1) * scaleY;
 
-        if (style === 'filled') {
-            const r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
-            ctx.fillStyle = `rgba(${r},${g},${b},0.25)`;
-            ctx.fillRect(sx1, sy1, w, h);
+        // Draw box unless masks-only mode
+        if (style !== 'masks') {
+            if (style === 'filled') {
+                const r = parseInt(color.slice(1, 3), 16), g = parseInt(color.slice(3, 5), 16), b = parseInt(color.slice(5, 7), 16);
+                ctx.fillStyle = `rgba(${r},${g},${b},0.25)`;
+                ctx.fillRect(sx1, sy1, w, h);
+            }
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(sx1, sy1, w, h);
         }
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(sx1, sy1, w, h);
 
+        // Always draw label — use mask centroid when in masks-only mode with masks
         const label = labels[i] || '';
         if (label) {
+            let lx = sx1, ly = sy1;
+            const poly = masks && masks[i];
+            if (style === 'masks' && poly && poly.length >= 3) {
+                // Compute centroid of mask polygon
+                let cx = 0, cy = 0;
+                for (const pt of poly) { cx += pt[0]; cy += pt[1]; }
+                cx = (cx / poly.length) * scaleX;
+                cy = (cy / poly.length) * scaleY;
+                lx = cx;
+                ly = cy;
+            }
             const tw = ctx.measureText(label).width + 6;
             ctx.fillStyle = color;
-            ctx.fillRect(sx1, sy1 - 16, tw, 16);
+            ctx.fillRect(lx - tw / 2, ly - 8, tw, 16);
             ctx.fillStyle = '#fff';
-            ctx.fillText(label, sx1 + 3, sy1 - 3);
+            ctx.fillText(label, lx - tw / 2 + 3, ly + 5);
         }
     }
 }

@@ -10,7 +10,8 @@ WORKDIR /app
 
 # Install Python deps (non-torch — torch already in base image)
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir git+https://github.com/mit-han-lab/efficientvit.git
 
 # Pre-download Florence-2-base model + processor (~500MB)
 # This bakes the model into the image so startup is instant
@@ -22,6 +23,7 @@ print('Model cached successfully')"
 
 # Copy application code
 COPY server.py .
+COPY segmentor.py .
 COPY pwa/ ./pwa/
 COPY index.html .
 
