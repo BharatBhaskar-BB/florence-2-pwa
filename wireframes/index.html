@@ -1,0 +1,1682 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <title>BundleBox — Wireframe Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ═══════════════════════════════════════════════════════════════
+       BundleBox PWA — Customer-Facing Wireframe Prototype
+       Click through screens to see the full flow.
+       ═══════════════════════════════════════════════════════════════ */
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #ffffff;
+        --surface: #f3f4f6;
+        --surface2: #e5e7eb;
+        --accent: #dc2626;
+        --accent-soft: rgba(220, 38, 38, 0.08);
+        --green: #16a34a;
+        --green-soft: rgba(22, 163, 74, 0.08);
+        --blue: #2563eb;
+        --blue-soft: rgba(37, 99, 235, 0.08);
+        --orange: #f59e0b;
+        --text: #111827;
+        --text-dim: #6b7280;
+        --text-light: #9ca3af;
+        --radius: 16px;
+        --radius-sm: 10px;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
+      }
+
+      html,
+      body {
+        height: 100%;
+        width: 100%;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          sans-serif;
+        background: #f0f0f0;
+        overflow: hidden;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+
+      /* Phone frame */
+      .phone-frame {
+        width: 390px;
+        height: 844px;
+        margin: 20px auto;
+        background: var(--bg);
+        border-radius: 44px;
+        overflow: hidden;
+        position: relative;
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.2),
+          inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+      }
+      .phone-inner {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Status bar */
+      .status-bar {
+        height: 54px;
+        padding: 14px 28px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 600;
+        position: relative;
+        z-index: 100;
+      }
+      .status-bar.dark {
+        color: #fff;
+      }
+      .status-bar.light {
+        color: #000;
+      }
+      .status-icons {
+        display: flex;
+        gap: 6px;
+        font-size: 12px;
+      }
+
+      /* Home indicator */
+      .home-indicator {
+        position: absolute;
+        bottom: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 134px;
+        height: 5px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 100px;
+        z-index: 100;
+      }
+
+      /* Screens */
+      .screen {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        flex-direction: column;
+      }
+      .screen.active {
+        display: flex;
+      }
+
+      /* Screen transitions */
+      .screen {
+        animation: fadeIn 0.3s ease;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── SCREEN 1: ONBOARDING ───────────────────────────────── */
+      .onboard {
+        background: var(--bg);
+      }
+      .onboard-pages {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+      .onboard-page {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 40px 32px;
+        text-align: center;
+        transition:
+          transform 0.4s ease,
+          opacity 0.4s ease;
+      }
+      .onboard-page.left {
+        transform: translateX(-100%);
+        opacity: 0;
+      }
+      .onboard-page.right {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      .onboard-page.center {
+        transform: translateX(0);
+        opacity: 1;
+      }
+
+      .onboard-icon {
+        width: 120px;
+        height: 120px;
+        background: var(--accent-soft);
+        border-radius: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 56px;
+        margin-bottom: 32px;
+      }
+      .onboard h2 {
+        font-size: 26px;
+        font-weight: 800;
+        margin-bottom: 12px;
+        line-height: 1.2;
+      }
+      .onboard p {
+        font-size: 15px;
+        color: var(--text-dim);
+        line-height: 1.6;
+        max-width: 300px;
+      }
+
+      .onboard-footer {
+        padding: 20px 32px 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .onboard-dots {
+        display: flex;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--surface2);
+        transition: all 0.3s;
+      }
+      .dot.active {
+        background: var(--accent);
+        width: 24px;
+        border-radius: 4px;
+      }
+      .btn-primary {
+        width: 100%;
+        padding: 16px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        font-size: 16px;
+        font-weight: 700;
+        cursor: pointer;
+        letter-spacing: 0.3px;
+      }
+      .btn-ghost {
+        background: none;
+        border: none;
+        color: var(--text-dim);
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 8px;
+      }
+
+      /* ── SCREEN 2: HOME ─────────────────────────────────────── */
+      .home-screen {
+        background: var(--bg);
+        padding-top: 54px;
+      }
+      .home-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 20px 100px;
+      }
+
+      .home-greeting {
+        padding: 20px 0 4px;
+        font-size: 14px;
+        color: var(--text-dim);
+        font-weight: 500;
+      }
+      .home-title {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 24px;
+        line-height: 1.2;
+      }
+      .home-title span {
+        color: var(--accent);
+      }
+
+      /* Server status card */
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 24px;
+      }
+      .status-pill.connected {
+        background: var(--green-soft);
+        color: var(--green);
+      }
+      .status-pill.offline {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+      .status-dot-sm {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+      }
+      .status-dot-sm.on {
+        background: var(--green);
+      }
+      .status-dot-sm.off {
+        background: var(--accent);
+      }
+
+      /* Big scan button */
+      .scan-hero-btn {
+        width: 100%;
+        padding: 24px;
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        color: #fff;
+        border: none;
+        border-radius: 20px;
+        font-size: 18px;
+        font-weight: 800;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
+        margin-bottom: 32px;
+        transition: transform 0.15s;
+        letter-spacing: 0.3px;
+      }
+      .scan-hero-btn:active {
+        transform: scale(0.97);
+      }
+      .scan-hero-icon {
+        width: 44px;
+        height: 44px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+      }
+
+      /* Feature cards */
+      .section-label {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+      }
+      .feature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 28px;
+      }
+      .feature-card {
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 16px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .feature-card:active {
+        background: var(--surface2);
+      }
+      .feature-card .fc-icon {
+        font-size: 24px;
+        margin-bottom: 8px;
+      }
+      .feature-card .fc-title {
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 2px;
+      }
+      .feature-card .fc-desc {
+        font-size: 11px;
+        color: var(--text-dim);
+        line-height: 1.4;
+      }
+
+      /* Recent scans */
+      .recent-scan {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--surface);
+      }
+      .recent-thumb {
+        width: 52px;
+        height: 52px;
+        background: var(--surface);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        flex-shrink: 0;
+      }
+      .recent-info {
+        flex: 1;
+      }
+      .recent-info .ri-title {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .recent-info .ri-meta {
+        font-size: 12px;
+        color: var(--text-dim);
+        margin-top: 2px;
+      }
+      .recent-arrow {
+        color: var(--text-light);
+        font-size: 16px;
+      }
+
+      /* Bottom navigation */
+      .bottom-nav {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 84px;
+        background: var(--bg);
+        border-top: 1px solid var(--surface);
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-start;
+        padding-top: 10px;
+        z-index: 50;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        background: none;
+        border: none;
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-dim);
+        cursor: pointer;
+        padding: 4px 12px;
+      }
+      .nav-item.active {
+        color: var(--accent);
+      }
+      .nav-item .nav-icon {
+        font-size: 22px;
+      }
+
+      /* ── SCREEN 3: SETTINGS BOTTOM SHEET ────────────────────── */
+      .sheet-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 60;
+        display: none;
+        animation: fadeOverlay 0.25s ease;
+      }
+      .sheet-overlay.active {
+        display: block;
+      }
+      @keyframes fadeOverlay {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      .bottom-sheet {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: var(--bg);
+        border-radius: 20px 20px 0 0;
+        padding: 12px 20px 40px;
+        z-index: 70;
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+        max-height: 70%;
+        overflow-y: auto;
+      }
+      .bottom-sheet.open {
+        transform: translateY(0);
+      }
+      .sheet-handle {
+        width: 36px;
+        height: 5px;
+        background: var(--surface2);
+        border-radius: 100px;
+        margin: 0 auto 16px;
+      }
+      .sheet-title {
+        font-size: 18px;
+        font-weight: 800;
+        margin-bottom: 20px;
+      }
+      .setting-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid var(--surface);
+      }
+      .setting-row .sr-label {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .setting-row .sr-desc {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-top: 2px;
+      }
+      .setting-row select {
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--surface);
+        border: 1px solid var(--surface2);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* ── SCREEN 4: SCAN ─────────────────────────────────────── */
+      .scan-screen {
+        background: #000;
+      }
+      .scan-viewport {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+      }
+      .scan-camera-bg {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+          145deg,
+          #1a1a2e 0%,
+          #16213e 50%,
+          #0f3460 100%
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .camera-placeholder {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 14px;
+      }
+      .camera-placeholder .cp-icon {
+        font-size: 48px;
+        margin-bottom: 12px;
+      }
+
+      /* Scan header overlay */
+      .scan-top {
+        position: absolute;
+        top: 54px;
+        left: 0;
+        right: 0;
+        padding: 8px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 10;
+      }
+      .rec-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 20px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+      }
+      .rec-dot-live {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #ef4444;
+        animation: pulse 1.5s infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.4;
+        }
+      }
+      .speed-pill {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 6px 12px;
+        border-radius: 20px;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: "SF Mono", "Menlo", monospace;
+      }
+      .count-pill {
+        background: rgba(220, 38, 38, 0.85);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 20px;
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      /* Fake bounding boxes */
+      .fake-box {
+        position: absolute;
+        border: 2px solid;
+        border-radius: 4px;
+        z-index: 5;
+      }
+      .fake-label {
+        position: absolute;
+        top: -1px;
+        left: -1px;
+        padding: 2px 8px;
+        font-size: 10px;
+        font-weight: 700;
+        color: #fff;
+        border-radius: 0 0 6px 0;
+      }
+
+      /* Floating bubbles */
+      .scan-bubbles {
+        position: absolute;
+        bottom: 100px;
+        left: 16px;
+        z-index: 8;
+        width: 160px;
+      }
+      .fake-bubble {
+        background: rgba(0, 0, 0, 0.55);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        padding: 5px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        white-space: nowrap;
+        margin-bottom: 6px;
+        animation: bubbleUp 3s ease-out forwards;
+        position: relative;
+      }
+      @keyframes bubbleUp {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.8);
+        }
+        10% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+        70% {
+          opacity: 0.9;
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-40px) scale(0.9);
+        }
+      }
+
+      /* Right side controls */
+      .scan-side-controls {
+        position: absolute;
+        bottom: 100px;
+        right: 16px;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+      .side-btn {
+        width: 44px;
+        height: 44px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: #fff;
+        cursor: pointer;
+      }
+      .side-label {
+        font-size: 9px;
+        color: rgba(255, 255, 255, 0.6);
+        text-align: center;
+        margin-top: -6px;
+        font-weight: 600;
+      }
+
+      /* Scan bottom bar */
+      .scan-bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 20px 36px;
+        background: linear-gradient(
+          0deg,
+          rgba(0, 0, 0, 0.85) 0%,
+          transparent 100%
+        );
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        z-index: 10;
+      }
+      .scan-action-btn {
+        padding: 14px 32px;
+        border: none;
+        border-radius: 28px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .scan-action-btn.secondary {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: #fff;
+      }
+      .scan-action-btn.primary {
+        background: var(--green);
+        color: #fff;
+        box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+      }
+
+      /* Scanning line */
+      .scanline {
+        position: absolute;
+        top: 30%;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          var(--accent),
+          transparent
+        );
+        z-index: 4;
+        opacity: 0.7;
+      }
+
+      /* ── SCREEN 5: RESULTS ──────────────────────────────────── */
+      .results-screen {
+        background: var(--bg);
+        padding-top: 0;
+      }
+      .results-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding-bottom: 100px;
+      }
+
+      .results-nav {
+        position: sticky;
+        top: 0;
+        z-index: 50;
+        background: var(--bg);
+        padding: 60px 20px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--surface);
+      }
+      .results-nav .rn-back {
+        background: none;
+        border: none;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--accent);
+        cursor: pointer;
+      }
+      .results-nav .rn-title {
+        font-size: 16px;
+        font-weight: 800;
+      }
+      .results-nav .rn-share {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      /* Stats bar */
+      .results-stats-bar {
+        display: flex;
+        gap: 1px;
+        background: var(--surface);
+        margin: 0;
+      }
+      .stat-cell {
+        flex: 1;
+        padding: 14px 12px;
+        text-align: center;
+        background: var(--bg);
+      }
+      .stat-cell .sc-val {
+        font-size: 22px;
+        font-weight: 800;
+        color: var(--text);
+      }
+      .stat-cell .sc-label {
+        font-size: 10px;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-top: 2px;
+      }
+
+      /* Category sections */
+      .cat-section {
+        padding: 16px 20px 4px;
+      }
+      .cat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .cat-title {
+        font-size: 13px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--text-dim);
+      }
+      .cat-count {
+        font-size: 12px;
+        font-weight: 700;
+        background: var(--surface);
+        padding: 3px 10px;
+        border-radius: 10px;
+        color: var(--text-dim);
+      }
+
+      /* Inventory item cards */
+      .inv-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 14px;
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        margin-bottom: 8px;
+      }
+      .inv-card .ic-icon {
+        width: 42px;
+        height: 42px;
+        background: var(--bg);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
+      .inv-card .ic-info {
+        flex: 1;
+      }
+      .inv-card .ic-name {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      .inv-card .ic-detail {
+        font-size: 11px;
+        color: var(--text-dim);
+        margin-top: 2px;
+      }
+      .inv-card .ic-qty {
+        font-size: 16px;
+        font-weight: 800;
+        color: var(--accent);
+        min-width: 24px;
+        text-align: center;
+      }
+
+      /* Powered by */
+      .powered-by {
+        text-align: center;
+        padding: 20px;
+        font-size: 11px;
+        color: var(--text-light);
+      }
+      .powered-by span {
+        font-weight: 700;
+      }
+
+      /* Results bottom actions */
+      .results-bottom {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 20px 36px;
+        background: var(--bg);
+        border-top: 1px solid var(--surface);
+        display: flex;
+        gap: 10px;
+      }
+      .results-bottom .rb-btn {
+        flex: 1;
+        padding: 14px;
+        border-radius: var(--radius-sm);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        border: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .rb-btn.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .rb-btn.outline {
+        background: none;
+        color: var(--text);
+        border: 1.5px solid var(--surface2);
+      }
+
+      /* ── SCREEN 6: HISTORY ──────────────────────────────────── */
+      .history-screen {
+        background: var(--bg);
+        padding-top: 54px;
+      }
+      .history-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 20px 100px;
+      }
+      .history-title {
+        font-size: 28px;
+        font-weight: 800;
+        padding: 20px 0 16px;
+      }
+
+      .history-card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+      .history-card:active {
+        background: var(--surface2);
+      }
+      .hc-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+      }
+      .hc-room {
+        font-size: 15px;
+        font-weight: 700;
+      }
+      .hc-date {
+        font-size: 11px;
+        color: var(--text-dim);
+      }
+      .hc-stats {
+        display: flex;
+        gap: 16px;
+      }
+      .hc-stat {
+        font-size: 12px;
+        color: var(--text-dim);
+      }
+      .hc-stat strong {
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      .history-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: var(--text-dim);
+      }
+      .history-empty .he-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+      .history-empty p {
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      /* ── Nav label ──────────────────────────────────────────── */
+      .proto-label {
+        position: fixed;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #111;
+        color: #fff;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 700;
+        z-index: 1000;
+        letter-spacing: 0.5px;
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="proto-label">WIREFRAME PROTOTYPE — Click to navigate</div>
+
+    <div class="phone-frame">
+      <div class="phone-inner">
+        <!-- ════════════════════════════════════════════════════════
+         SCREEN 1: ONBOARDING
+         ════════════════════════════════════════════════════════ -->
+        <div id="scr-onboard" class="screen onboard active">
+          <div class="status-bar light">
+            <span>9:41</span><span class="status-icons">📶 🔋</span>
+          </div>
+          <div class="onboard-pages">
+            <div class="onboard-page center" id="ob-page-1">
+              <div class="onboard-icon">📦</div>
+              <h2>Scan Any Room<br />in Seconds</h2>
+              <p>
+                Point your camera and let AI identify every item automatically.
+                No manual counting needed.
+              </p>
+            </div>
+            <div class="onboard-page right" id="ob-page-2">
+              <div class="onboard-icon" style="background: var(--green-soft)">
+                🤖
+              </div>
+              <h2>AI-Powered<br />Inventory</h2>
+              <p>
+                Florence-2 detects objects in real-time. Gemini 2.0 Flash builds
+                your complete, verified inventory list.
+              </p>
+            </div>
+            <div class="onboard-page right" id="ob-page-3">
+              <div class="onboard-icon" style="background: var(--blue-soft)">
+                📋
+              </div>
+              <h2>Share &amp;<br />Export</h2>
+              <p>
+                Download itemized reports, share with your team, or export to
+                your moving management system.
+              </p>
+            </div>
+          </div>
+          <div class="onboard-footer">
+            <div class="onboard-dots">
+              <div class="dot active" id="dot-1"></div>
+              <div class="dot" id="dot-2"></div>
+              <div class="dot" id="dot-3"></div>
+            </div>
+            <button class="btn-primary" id="ob-next" onclick="nextOnboard()">
+              GET STARTED
+            </button>
+            <button class="btn-ghost" onclick="showScreen('scr-home')">
+              Skip
+            </button>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+         SCREEN 2: HOME
+         ════════════════════════════════════════════════════════ -->
+        <div id="scr-home" class="screen home-screen">
+          <div class="status-bar light">
+            <span>9:41</span><span class="status-icons">📶 🔋</span>
+          </div>
+          <div class="home-scroll">
+            <div class="home-greeting">Good morning 👋</div>
+            <div class="home-title">Bundle<span>Box</span></div>
+
+            <div class="status-pill connected">
+              <div class="status-dot-sm on"></div>
+              Server Connected · CUDA T4
+            </div>
+
+            <button class="scan-hero-btn" onclick="showScreen('scr-scan')">
+              <div class="scan-hero-icon">📷</div>
+              <div>
+                <div>START ROOM SCAN</div>
+                <div
+                  style="
+                    font-size: 12px;
+                    font-weight: 500;
+                    opacity: 0.8;
+                    margin-top: 2px;
+                  "
+                >
+                  AI-powered detection in real-time
+                </div>
+              </div>
+            </button>
+
+            <div class="section-label">Capabilities</div>
+            <div class="feature-grid">
+              <div class="feature-card">
+                <div class="fc-icon">🔍</div>
+                <div class="fc-title">Live Detection</div>
+                <div class="fc-desc">
+                  Real-time object detection with Florence-2
+                </div>
+              </div>
+              <div class="feature-card">
+                <div class="fc-icon">🧠</div>
+                <div class="fc-title">Smart Inventory</div>
+                <div class="fc-desc">
+                  Gemini 2.0 Flash builds verified lists
+                </div>
+              </div>
+              <div class="feature-card" onclick="showSheet()">
+                <div class="fc-icon">⚙️</div>
+                <div class="fc-title">Settings</div>
+                <div class="fc-desc">Resolution, task type, segmentation</div>
+              </div>
+              <div class="feature-card" onclick="showScreen('scr-history')">
+                <div class="fc-icon">📊</div>
+                <div class="fc-title">History</div>
+                <div class="fc-desc">View past scans and reports</div>
+              </div>
+            </div>
+
+            <div class="section-label">Recent Scans</div>
+            <div class="recent-scan" onclick="showScreen('scr-results')">
+              <div class="recent-thumb">🛋</div>
+              <div class="recent-info">
+                <div class="ri-title">Living Room</div>
+                <div class="ri-meta">27 items · 2 min ago</div>
+              </div>
+              <div class="recent-arrow">›</div>
+            </div>
+            <div class="recent-scan">
+              <div class="recent-thumb">🍳</div>
+              <div class="recent-info">
+                <div class="ri-title">Kitchen</div>
+                <div class="ri-meta">34 items · 1 hr ago</div>
+              </div>
+              <div class="recent-arrow">›</div>
+            </div>
+            <div class="recent-scan">
+              <div class="recent-thumb">🛏</div>
+              <div class="recent-info">
+                <div class="ri-title">Master Bedroom</div>
+                <div class="ri-meta">19 items · Yesterday</div>
+              </div>
+              <div class="recent-arrow">›</div>
+            </div>
+          </div>
+
+          <!-- Bottom Nav -->
+          <div class="bottom-nav">
+            <button class="nav-item active">
+              <span class="nav-icon">🏠</span>Home
+            </button>
+            <button class="nav-item" onclick="showScreen('scr-scan')">
+              <span class="nav-icon">📷</span>Scan
+            </button>
+            <button class="nav-item" onclick="showScreen('scr-history')">
+              <span class="nav-icon">📋</span>History
+            </button>
+            <button class="nav-item" onclick="showSheet()">
+              <span class="nav-icon">⚙️</span>Settings
+            </button>
+          </div>
+
+          <!-- Settings Bottom Sheet -->
+          <div
+            class="sheet-overlay"
+            id="sheet-overlay"
+            onclick="hideSheet()"
+          ></div>
+          <div class="bottom-sheet" id="settings-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Settings</div>
+
+            <div class="setting-row">
+              <div>
+                <div class="sr-label">Detection Task</div>
+                <div class="sr-desc">What the model looks for</div>
+              </div>
+              <select>
+                <option>Object Detection</option>
+                <option>Dense Caption</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="sr-label">Inference Resolution</div>
+                <div class="sr-desc">Higher = more accurate, slower</div>
+              </div>
+              <select>
+                <option>320p Fastest</option>
+                <option>480p Balanced</option>
+                <option selected>640p Best</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="sr-label">Draw Style</div>
+                <div class="sr-desc">How detections are displayed</div>
+              </div>
+              <select>
+                <option selected>Bounding Boxes</option>
+                <option>Filled Overlay</option>
+                <option>Masks Only</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="sr-label">Segmentation</div>
+                <div class="sr-desc">Precise object outlines</div>
+              </div>
+              <select>
+                <option>None</option>
+                <option>MobileSAM</option>
+              </select>
+            </div>
+            <div class="setting-row">
+              <div>
+                <div class="sr-label">Scan Duration</div>
+                <div class="sr-desc">Max recording time</div>
+              </div>
+              <select>
+                <option>30 seconds</option>
+                <option selected>60 seconds</option>
+                <option>2 minutes</option>
+                <option>5 minutes</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="home-indicator"></div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+         SCREEN 3: SCAN (Camera Active)
+         ════════════════════════════════════════════════════════ -->
+        <div id="scr-scan" class="screen scan-screen">
+          <div class="status-bar dark">
+            <span>9:42</span><span class="status-icons">📶 🔋</span>
+          </div>
+          <div class="scan-viewport">
+            <div class="scan-camera-bg">
+              <div class="camera-placeholder">
+                <div class="cp-icon">📷</div>
+                Live camera feed here
+              </div>
+            </div>
+
+            <!-- Scan line -->
+            <div class="scanline"></div>
+
+            <!-- Fake bounding boxes -->
+            <div
+              class="fake-box"
+              style="
+                top: 28%;
+                left: 15%;
+                width: 30%;
+                height: 22%;
+                border-color: #ff0000;
+              "
+            >
+              <div class="fake-label" style="background: #ff0000">sofa</div>
+            </div>
+            <div
+              class="fake-box"
+              style="
+                top: 25%;
+                left: 55%;
+                width: 18%;
+                height: 15%;
+                border-color: #00ff00;
+              "
+            >
+              <div class="fake-label" style="background: #00ff00; color: #000">
+                monitor
+              </div>
+            </div>
+            <div
+              class="fake-box"
+              style="
+                top: 55%;
+                left: 60%;
+                width: 12%;
+                height: 18%;
+                border-color: #0000ff;
+              "
+            >
+              <div class="fake-label" style="background: #0000ff">chair</div>
+            </div>
+            <div
+              class="fake-box"
+              style="
+                top: 50%;
+                left: 20%;
+                width: 10%;
+                height: 10%;
+                border-color: #ffff00;
+              "
+            >
+              <div class="fake-label" style="background: #ffff00; color: #000">
+                cup
+              </div>
+            </div>
+
+            <!-- Top overlay -->
+            <div class="scan-top">
+              <div class="rec-pill">
+                <div class="rec-dot-live"></div>
+                0:42
+              </div>
+              <div class="speed-pill">⚡ 87ms</div>
+              <div class="count-pill">12 items</div>
+            </div>
+
+            <!-- Floating bubbles (left) -->
+            <div class="scan-bubbles">
+              <div class="fake-bubble" style="animation-delay: 0s">📦 sofa</div>
+              <div class="fake-bubble" style="animation-delay: 0.3s">
+                🖥 monitor
+              </div>
+              <div class="fake-bubble" style="animation-delay: 0.6s">
+                🪑 chair
+              </div>
+              <div class="fake-bubble" style="animation-delay: 0.9s">
+                ☕ cup
+              </div>
+            </div>
+
+            <!-- Side controls (right) -->
+            <div class="scan-side-controls">
+              <button class="side-btn">🔦</button>
+              <div class="side-label">Torch</div>
+              <button class="side-btn">🔍</button>
+              <div class="side-label">1.0x</div>
+              <button class="side-btn">⚙️</button>
+              <div class="side-label">Mode</div>
+            </div>
+          </div>
+
+          <!-- Bottom scan controls -->
+          <div class="scan-bottom">
+            <button class="scan-action-btn secondary">⏸ Pause</button>
+            <button
+              class="scan-action-btn primary"
+              onclick="showScreen('scr-results')"
+            >
+              ✓ Done
+            </button>
+          </div>
+          <div class="home-indicator" style="bottom: 4px"></div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+         SCREEN 4: RESULTS
+         ════════════════════════════════════════════════════════ -->
+        <div id="scr-results" class="screen results-screen">
+          <div class="results-scroll">
+            <div class="results-nav">
+              <button class="rn-back" onclick="showScreen('scr-home')">
+                ← Back
+              </button>
+              <div class="rn-title">Scan Results</div>
+              <button class="rn-share">📤</button>
+            </div>
+
+            <!-- Stats -->
+            <div class="results-stats-bar">
+              <div class="stat-cell">
+                <div class="sc-val">27</div>
+                <div class="sc-label">Items</div>
+              </div>
+              <div class="stat-cell">
+                <div class="sc-val">0:42</div>
+                <div class="sc-label">Duration</div>
+              </div>
+              <div class="stat-cell">
+                <div class="sc-val">87ms</div>
+                <div class="sc-label">Avg Speed</div>
+              </div>
+            </div>
+
+            <!-- Category: Furniture -->
+            <div class="cat-section">
+              <div class="cat-header">
+                <div class="cat-title">🛋 Furniture</div>
+                <div class="cat-count">8 items</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">🛋</div>
+                <div class="ic-info">
+                  <div class="ic-name">Sofa</div>
+                  <div class="ic-detail">Large · Gray fabric</div>
+                </div>
+                <div class="ic-qty">1</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">🪑</div>
+                <div class="ic-info">
+                  <div class="ic-name">Office Chair</div>
+                  <div class="ic-detail">Medium · Black</div>
+                </div>
+                <div class="ic-qty">2</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">🗄</div>
+                <div class="ic-info">
+                  <div class="ic-name">Bookshelf</div>
+                  <div class="ic-detail">Large · Wood</div>
+                </div>
+                <div class="ic-qty">1</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">🪟</div>
+                <div class="ic-info">
+                  <div class="ic-name">Coffee Table</div>
+                  <div class="ic-detail">Medium · Glass top</div>
+                </div>
+                <div class="ic-qty">1</div>
+              </div>
+            </div>
+
+            <!-- Category: Electronics -->
+            <div class="cat-section">
+              <div class="cat-header">
+                <div class="cat-title">💻 Electronics</div>
+                <div class="cat-count">5 items</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">🖥</div>
+                <div class="ic-info">
+                  <div class="ic-name">Monitor</div>
+                  <div class="ic-detail">Medium · 27" Dell</div>
+                </div>
+                <div class="ic-qty">2</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">💻</div>
+                <div class="ic-info">
+                  <div class="ic-name">Laptop</div>
+                  <div class="ic-detail">Medium · MacBook</div>
+                </div>
+                <div class="ic-qty">1</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">⌨️</div>
+                <div class="ic-info">
+                  <div class="ic-name">Keyboard</div>
+                  <div class="ic-detail">Small · Wireless</div>
+                </div>
+                <div class="ic-qty">1</div>
+              </div>
+            </div>
+
+            <!-- Category: Other -->
+            <div class="cat-section">
+              <div class="cat-header">
+                <div class="cat-title">📦 Other Items</div>
+                <div class="cat-count">14 items</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">☕</div>
+                <div class="ic-info">
+                  <div class="ic-name">Coffee Mug</div>
+                  <div class="ic-detail">Small · White ceramic</div>
+                </div>
+                <div class="ic-qty">3</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">📚</div>
+                <div class="ic-info">
+                  <div class="ic-name">Books</div>
+                  <div class="ic-detail">Small · Various</div>
+                </div>
+                <div class="ic-qty">8</div>
+              </div>
+              <div class="inv-card">
+                <div class="ic-icon">🎒</div>
+                <div class="ic-info">
+                  <div class="ic-name">Backpack</div>
+                  <div class="ic-detail">Medium · Black</div>
+                </div>
+                <div class="ic-qty">1</div>
+              </div>
+            </div>
+
+            <div class="powered-by">
+              Detected by <span>Florence-2</span> · Verified by
+              <span>Gemini 2.0 Flash</span>
+            </div>
+          </div>
+
+          <!-- Bottom actions -->
+          <div class="results-bottom">
+            <button class="rb-btn primary" onclick="showScreen('scr-scan')">
+              Scan Again
+            </button>
+            <button class="rb-btn outline">Export PDF</button>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════
+         SCREEN 5: HISTORY
+         ════════════════════════════════════════════════════════ -->
+        <div id="scr-history" class="screen history-screen">
+          <div class="status-bar light">
+            <span>9:41</span><span class="status-icons">📶 🔋</span>
+          </div>
+          <div class="history-scroll">
+            <div class="history-title">Scan History</div>
+
+            <div class="history-card" onclick="showScreen('scr-results')">
+              <div class="hc-top">
+                <div class="hc-room">🛋 Living Room</div>
+                <div class="hc-date">2 min ago</div>
+              </div>
+              <div class="hc-stats">
+                <div class="hc-stat"><strong>27</strong> items</div>
+                <div class="hc-stat"><strong>0:42</strong> duration</div>
+                <div class="hc-stat"><strong>87ms</strong> avg</div>
+              </div>
+            </div>
+
+            <div class="history-card">
+              <div class="hc-top">
+                <div class="hc-room">🍳 Kitchen</div>
+                <div class="hc-date">1 hr ago</div>
+              </div>
+              <div class="hc-stats">
+                <div class="hc-stat"><strong>34</strong> items</div>
+                <div class="hc-stat"><strong>1:15</strong> duration</div>
+                <div class="hc-stat"><strong>92ms</strong> avg</div>
+              </div>
+            </div>
+
+            <div class="history-card">
+              <div class="hc-top">
+                <div class="hc-room">🛏 Master Bedroom</div>
+                <div class="hc-date">Yesterday</div>
+              </div>
+              <div class="hc-stats">
+                <div class="hc-stat"><strong>19</strong> items</div>
+                <div class="hc-stat"><strong>0:38</strong> duration</div>
+                <div class="hc-stat"><strong>85ms</strong> avg</div>
+              </div>
+            </div>
+
+            <div class="history-card">
+              <div class="hc-top">
+                <div class="hc-room">🚿 Bathroom</div>
+                <div class="hc-date">2 days ago</div>
+              </div>
+              <div class="hc-stats">
+                <div class="hc-stat"><strong>12</strong> items</div>
+                <div class="hc-stat"><strong>0:25</strong> duration</div>
+                <div class="hc-stat"><strong>79ms</strong> avg</div>
+              </div>
+            </div>
+
+            <div class="history-card">
+              <div class="hc-top">
+                <div class="hc-room">🏢 Home Office</div>
+                <div class="hc-date">3 days ago</div>
+              </div>
+              <div class="hc-stats">
+                <div class="hc-stat"><strong>22</strong> items</div>
+                <div class="hc-stat"><strong>0:55</strong> duration</div>
+                <div class="hc-stat"><strong>90ms</strong> avg</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Nav -->
+          <div class="bottom-nav">
+            <button class="nav-item" onclick="showScreen('scr-home')">
+              <span class="nav-icon">🏠</span>Home
+            </button>
+            <button class="nav-item" onclick="showScreen('scr-scan')">
+              <span class="nav-icon">📷</span>Scan
+            </button>
+            <button class="nav-item active">
+              <span class="nav-icon">📋</span>History
+            </button>
+            <button class="nav-item" onclick="showSheet()">
+              <span class="nav-icon">⚙️</span>Settings
+            </button>
+          </div>
+          <div class="home-indicator"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ── Screen Navigation ──────────────────────────────────────
+      function showScreen(id) {
+        document
+          .querySelectorAll(".screen")
+          .forEach((s) => s.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+        hideSheet();
+      }
+
+      // ── Onboarding ─────────────────────────────────────────────
+      let obPage = 1;
+      function nextOnboard() {
+        if (obPage >= 3) {
+          showScreen("scr-home");
+          return;
+        }
+        obPage++;
+        updateOnboard();
+      }
+      function updateOnboard() {
+        ["ob-page-1", "ob-page-2", "ob-page-3"].forEach((id, i) => {
+          const el = document.getElementById(id);
+          const page = i + 1;
+          el.className =
+            "onboard-page " +
+            (page < obPage ? "left" : page === obPage ? "center" : "right");
+        });
+        ["dot-1", "dot-2", "dot-3"].forEach((id, i) => {
+          document.getElementById(id).className =
+            "dot" + (i + 1 === obPage ? " active" : "");
+        });
+        document.getElementById("ob-next").textContent =
+          obPage === 3 ? "GET STARTED" : "NEXT";
+      }
+
+      // ── Bottom Sheet ───────────────────────────────────────────
+      function showSheet() {
+        document.getElementById("sheet-overlay").classList.add("active");
+        document.getElementById("settings-sheet").classList.add("open");
+      }
+      function hideSheet() {
+        document.getElementById("sheet-overlay")?.classList.remove("active");
+        document.getElementById("settings-sheet")?.classList.remove("open");
+      }
+    </script>
+  </body>
+</html>

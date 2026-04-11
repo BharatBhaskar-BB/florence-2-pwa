@@ -115,21 +115,56 @@ function updateTemporalFilter(frameLabels) {
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register(BASE_PATH + '/sw.js').catch(() => { });
 }
+
+// Check if onboarding was already completed
+if (localStorage.getItem('bb_onboarded')) {
+    document.getElementById('onboarding').classList.remove('active');
+    document.getElementById('home').classList.add('active');
+}
 checkServer();
+updateGreeting();
+
+// ── Onboarding ─────────────────────────────────────────────────────────────
+let _obPage = 1;
+function nextOnboard() {
+    if (_obPage >= 3) { finishOnboard(); return; }
+    _obPage++;
+    ['ob-page-1','ob-page-2','ob-page-3'].forEach((id, i) => {
+        const p = i + 1;
+        document.getElementById(id).className = 'ob-page ' + (p < _obPage ? 'left' : p === _obPage ? 'center' : 'right');
+    });
+    ['ob-dot-1','ob-dot-2','ob-dot-3'].forEach((id, i) => {
+        document.getElementById(id).className = 'ob-dot' + (i + 1 === _obPage ? ' active' : '');
+    });
+    document.getElementById('ob-next-btn').textContent = _obPage === 3 ? 'GET STARTED' : 'NEXT';
+}
+function finishOnboard() {
+    localStorage.setItem('bb_onboarded', '1');
+    showScreen('home');
+}
+
+function updateGreeting() {
+    const h = new Date().getHours();
+    const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+    const el = document.getElementById('h-greeting');
+    if (el) el.textContent = g + ' 👋';
+}
 
 async function checkServer() {
+    const pill = document.getElementById('h-status-pill');
+    const text = document.getElementById('h-status-text');
+    const dot = pill ? pill.querySelector('.status-dot-sm') : null;
     try {
         const r = await fetch(API + '/api/health');
         const d = await r.json();
-        document.getElementById('h-server-status').innerHTML =
-            `<span class="status-dot ok"></span>Connected`;
-        document.getElementById('h-device').textContent = d.device;
+        if (pill) { pill.className = 'status-pill connected'; }
+        if (dot) { dot.className = 'status-dot-sm on'; }
+        if (text) { text.textContent = `Connected · ${d.device.toUpperCase()}`; }
         document.getElementById('h-start').disabled = false;
 
         // Populate available segmentors
         const segmentors = d.segmentors || ['none'];
         const segSelect = document.getElementById('h-segmentor');
-        const segInfo = document.getElementById('h-segmentors');
         if (segSelect) {
             for (const opt of segSelect.options) {
                 if (opt.value !== 'none') {
@@ -138,13 +173,10 @@ async function checkServer() {
                 }
             }
         }
-        if (segInfo) {
-            const available = segmentors.filter(s => s !== 'none');
-            segInfo.textContent = available.length > 0 ? available.join(', ') : 'None installed';
-        }
     } catch {
-        document.getElementById('h-server-status').innerHTML =
-            `<span class="status-dot err"></span>Offline`;
+        if (pill) { pill.className = 'status-pill offline'; }
+        if (dot) { dot.className = 'status-dot-sm off'; }
+        if (text) { text.textContent = 'Server Offline'; }
         document.getElementById('h-start').disabled = true;
     }
 }
@@ -153,11 +185,25 @@ async function checkServer() {
 function showScreen(id) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(id).classList.add('active');
+    hideSettings();
 }
 
 function goHome() {
     stopScan();
     showScreen('home');
+    renderScanHistory();
+}
+
+// ── Settings Bottom Sheet ──────────────────────────────────────────────────
+function showSettings() {
+    document.getElementById('sheet-overlay').classList.add('active');
+    document.getElementById('settings-sheet').classList.add('open');
+}
+function hideSettings() {
+    const overlay = document.getElementById('sheet-overlay');
+    const sheet = document.getElementById('settings-sheet');
+    if (overlay) overlay.classList.remove('active');
+    if (sheet) sheet.classList.remove('open');
 }
 
 // ── Start Scan ─────────────────────────────────────────────────────────────
@@ -176,6 +222,7 @@ async function startScan() {
     document.getElementById('s-detecting').textContent = 'Detecting...';
     _warmupDone = false;
     resetBubbles();
+    hideSettings();
 
     try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -677,21 +724,34 @@ function finishScan() {
     showScreen('results');
     const mins = Math.floor(elapsed / 60);
     const secs = elapsed % 60;
-    document.getElementById('r-meta').textContent =
-        `Scanned ${mins}:${secs.toString().padStart(2, '0')} | ${frameCount} frames processed | ${capturedFrames.length} key frames captured`;
+    const durationStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    const avgMs = scanStats.inferenceCount > 0 ? Math.round(scanStats.inferenceSum / scanStats.inferenceCount) : 0;
+
+    // Populate stats bar
+    document.getElementById('r-item-count').textContent = '—';
+    document.getElementById('r-duration').textContent = durationStr;
+    document.getElementById('r-avg-ms').textContent = avgMs ? `${avgMs}ms` : '—';
 
     // Show processing state
     document.getElementById('r-processing').style.display = 'block';
     document.getElementById('r-inventory').style.display = 'none';
     document.getElementById('r-total').style.display = 'none';
 
-    const avgMs = scanStats.inferenceCount > 0 ? Math.round(scanStats.inferenceSum / scanStats.inferenceCount) : 0;
     const fps = avgMs > 0 ? (1000 / avgMs).toFixed(1) : '—';
     document.getElementById('r-stats').innerHTML =
         `Florence-2 Live Detection<br>` +
         `Avg inference: ${avgMs}ms/frame | FPS: ${fps}<br>` +
         `Frames detected: ${frameCount} | Key frames: ${capturedFrames.length}<br>` +
         `Live labels found: ${detectedLabels.size} types`;
+
+    // Store scan in history
+    _currentScanMeta = {
+        duration: durationStr,
+        frameCount,
+        avgMs,
+        labelCount: detectedLabels.size,
+        timestamp: Date.now(),
+    };
 
     // Send key frames to Gemini for inventory
     runGeminiBatch();
@@ -754,10 +814,14 @@ function showInventory(data) {
     invEl.innerHTML = items.map(item => {
         const count = item.count || 1;
         totalCount += count;
-        const sizeStr = item.size ? `<span class="inv-size">${item.size}</span>` : '';
-        return `<div class="inv-item">
-      <div><span class="inv-name">${item.name}</span> ${sizeStr}</div>
-      <span class="inv-count">×${count}</span>
+        const detail = [item.size, item.notes].filter(Boolean).join(' · ');
+        return `<div class="inv-card">
+      <div class="ic-icon">📦</div>
+      <div class="ic-info">
+        <div class="ic-name">${item.name}</div>
+        ${detail ? `<div class="ic-detail">${detail}</div>` : ''}
+      </div>
+      <div class="ic-qty">×${count}</div>
     </div>`;
     }).join('');
 
@@ -765,11 +829,17 @@ function showInventory(data) {
     totalEl.style.display = 'block';
     totalEl.textContent = `Total: ${items.length} unique items, ${totalCount} pieces`;
 
+    // Update stats bar item count
+    document.getElementById('r-item-count').textContent = totalCount;
+
     // Update stats with Gemini info
     const statsEl = document.getElementById('r-stats');
     statsEl.innerHTML += `<br><br>Gemini 2.0 Flash Inventory<br>` +
         `Items found: ${items.length} | Total pieces: ${totalCount}<br>` +
         `Cost: ~$${(data.cost || 0).toFixed(3)}`;
+
+    // Save to scan history
+    saveScanHistory(totalCount, items.length);
 }
 
 function showInventoryError(msg) {
@@ -857,3 +927,84 @@ async function uploadArtifacts() {
         }, 3000);
     }
 }
+
+// ── Scan History ────────────────────────────────────────────────────────────
+let _currentScanMeta = null;
+
+function saveScanHistory(totalPieces, uniqueItems) {
+    const history = JSON.parse(localStorage.getItem('bb_history') || '[]');
+    history.unshift({
+        items: totalPieces,
+        unique: uniqueItems,
+        duration: _currentScanMeta?.duration || '—',
+        avgMs: _currentScanMeta?.avgMs || 0,
+        timestamp: Date.now(),
+    });
+    // Keep last 20
+    if (history.length > 20) history.length = 20;
+    localStorage.setItem('bb_history', JSON.stringify(history));
+}
+
+function renderScanHistory() {
+    const history = JSON.parse(localStorage.getItem('bb_history') || '[]');
+
+    // Home recent scans
+    const recentLabel = document.getElementById('h-recent-label');
+    const recentList = document.getElementById('h-recent-list');
+    if (recentLabel && recentList) {
+        if (history.length > 0) {
+            recentLabel.style.display = '';
+            recentList.innerHTML = history.slice(0, 3).map(s => {
+                const ago = timeAgo(s.timestamp);
+                return `<div class="recent-scan">
+                    <div class="recent-thumb">📦</div>
+                    <div class="recent-info">
+                        <div class="ri-title">${s.unique} items · ${s.items} pieces</div>
+                        <div class="ri-meta">${s.duration} scan · ${ago}</div>
+                    </div>
+                    <div class="recent-arrow">›</div>
+                </div>`;
+            }).join('');
+        } else {
+            recentLabel.style.display = 'none';
+            recentList.innerHTML = '';
+        }
+    }
+
+    // History screen
+    const histList = document.getElementById('hist-list');
+    if (histList) {
+        if (history.length > 0) {
+            histList.innerHTML = history.map(s => {
+                const ago = timeAgo(s.timestamp);
+                return `<div class="history-card">
+                    <div class="hc-top">
+                        <div class="hc-room">📦 Room Scan</div>
+                        <div class="hc-date">${ago}</div>
+                    </div>
+                    <div class="hc-stats">
+                        <div class="hc-stat"><strong>${s.items}</strong> pieces</div>
+                        <div class="hc-stat"><strong>${s.duration}</strong> duration</div>
+                        <div class="hc-stat"><strong>${s.avgMs}ms</strong> avg</div>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            histList.innerHTML = `<div class="history-empty"><div class="he-icon">📋</div><p>No scans yet.<br>Start your first room scan!</p></div>`;
+        }
+    }
+}
+
+function timeAgo(ts) {
+    const diff = Date.now() - ts;
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+}
+
+// Render history on load
+renderScanHistory();

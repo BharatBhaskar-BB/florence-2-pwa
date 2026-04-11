@@ -2,10 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#ffffff" />
@@ -14,83 +11,156 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-      rel="stylesheet"
-    />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="style.css" />
     <title>BundleBox</title>
   </head>
   <body>
-    <!-- ══════════ HOME SCREEN ══════════ -->
-    <div id="home" class="screen active">
-      <div class="logo-wrap">
-        <img src="icon-192.png" alt="BundleBox" class="logo-icon" />
-        <div class="logo">Bundle<span>Box</span></div>
-      </div>
-      <p class="tagline">Smart room inventory in minutes</p>
-
-      <div class="status-card">
-        <div class="status-row">
-          <span class="label">Server</span>
-          <span id="h-server-status"
-            ><span class="status-dot loading"></span>Checking...</span
-          >
+    <!-- ══════════ ONBOARDING ══════════ -->
+    <div id="onboarding" class="screen active">
+      <div class="ob-pages">
+        <div class="ob-page center" id="ob-page-1">
+          <div class="ob-icon">📦</div>
+          <h2>Scan Any Room<br>in Seconds</h2>
+          <p>Point your camera and let AI identify every item automatically. No manual counting needed.</p>
         </div>
-        <div class="status-row">
-          <span class="label">Model</span>
-          <span id="h-model-name">Florence-2-base</span>
+        <div class="ob-page right" id="ob-page-2">
+          <div class="ob-icon ob-green">🤖</div>
+          <h2>AI-Powered<br>Inventory</h2>
+          <p>Florence-2 detects objects in real-time. Gemini 2.0 Flash builds your complete, verified inventory list.</p>
         </div>
-        <div class="status-row">
-          <span class="label">Device</span>
-          <span id="h-device">—</span>
-        </div>
-        <div class="status-row">
-          <span class="label">Segmentors</span>
-          <span id="h-segmentors">—</span>
+        <div class="ob-page right" id="ob-page-3">
+          <div class="ob-icon ob-blue">📋</div>
+          <h2>Share &amp;<br>Export</h2>
+          <p>Download itemized reports, share with your team, or export to your moving management system.</p>
         </div>
       </div>
+      <div class="ob-footer">
+        <div class="ob-dots">
+          <div class="ob-dot active" id="ob-dot-1"></div>
+          <div class="ob-dot" id="ob-dot-2"></div>
+          <div class="ob-dot" id="ob-dot-3"></div>
+        </div>
+        <button class="btn-primary" id="ob-next-btn" onclick="nextOnboard()">GET STARTED</button>
+        <button class="btn-ghost" onclick="finishOnboard()">Skip</button>
+      </div>
+    </div>
 
-      <button class="start-btn" id="h-start" disabled onclick="startScan()">
-        START SCAN ▶
-      </button>
+    <!-- ══════════ HOME ══════════ -->
+    <div id="home" class="screen">
+      <div class="home-scroll">
+        <div class="home-greeting" id="h-greeting">Good morning 👋</div>
+        <div class="home-title">Bundle<span>Box</span></div>
 
-      <div class="settings-card">
-        <h3>⚙ Settings</h3>
+        <div class="status-pill connected" id="h-status-pill">
+          <div class="status-dot-sm on"></div>
+          <span id="h-status-text">Checking...</span>
+        </div>
+
+        <button class="scan-hero-btn" id="h-start" disabled onclick="startScan()">
+          <div class="scan-hero-icon">📷</div>
+          <div>
+            <div>START ROOM SCAN</div>
+            <div class="scan-hero-sub">AI-powered detection in real-time</div>
+          </div>
+        </button>
+
+        <div class="section-label">Capabilities</div>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="fc-icon">🔍</div>
+            <div class="fc-title">Live Detection</div>
+            <div class="fc-desc">Real-time object detection with Florence-2</div>
+          </div>
+          <div class="feature-card">
+            <div class="fc-icon">🧠</div>
+            <div class="fc-title">Smart Inventory</div>
+            <div class="fc-desc">Gemini 2.0 Flash builds verified lists</div>
+          </div>
+          <div class="feature-card" onclick="showSettings()">
+            <div class="fc-icon">⚙️</div>
+            <div class="fc-title">Settings</div>
+            <div class="fc-desc">Resolution, segmentation, draw mode</div>
+          </div>
+          <div class="feature-card" onclick="showScreen('history')">
+            <div class="fc-icon">📊</div>
+            <div class="fc-title">History</div>
+            <div class="fc-desc">View past scans and reports</div>
+          </div>
+        </div>
+
+        <div class="section-label" id="h-recent-label" style="display:none">Recent Scans</div>
+        <div id="h-recent-list"></div>
+      </div>
+
+      <!-- Bottom Nav -->
+      <div class="bottom-nav">
+        <button class="nav-item active" onclick="showScreen('home')">
+          <span class="nav-icon">🏠</span>Home
+        </button>
+        <button class="nav-item" onclick="startScan()">
+          <span class="nav-icon">📷</span>Scan
+        </button>
+        <button class="nav-item" onclick="showScreen('history')">
+          <span class="nav-icon">📋</span>History
+        </button>
+        <button class="nav-item" onclick="showSettings()">
+          <span class="nav-icon">⚙️</span>Settings
+        </button>
+      </div>
+
+      <!-- Settings Bottom Sheet -->
+      <div class="sheet-overlay" id="sheet-overlay" onclick="hideSettings()"></div>
+      <div class="bottom-sheet" id="settings-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Settings</div>
         <div class="setting-row">
-          <label>Task</label>
+          <div>
+            <div class="sr-label">Detection Task</div>
+            <div class="sr-desc">What the model looks for</div>
+          </div>
           <select id="h-task">
             <option value="<OD>">Object Detection</option>
             <option value="<DENSE_REGION_CAPTION>">Dense Caption</option>
           </select>
         </div>
         <div class="setting-row">
-          <label>Draw Style</label>
+          <div>
+            <div class="sr-label">Draw Style</div>
+            <div class="sr-desc">How detections are displayed</div>
+          </div>
           <select id="h-style">
             <option value="boxes">Bounding Boxes</option>
             <option value="filled">Filled Overlay</option>
-            <option value="masks">Masks Only (no boxes)</option>
+            <option value="masks">Masks Only</option>
           </select>
         </div>
         <div class="setting-row">
-          <label>Render Mode</label>
+          <div>
+            <div class="sr-label">Render Mode</div>
+            <div class="sr-desc">Camera + detection sync</div>
+          </div>
           <select id="h-render">
-            <option value="smooth" selected>
-              Smooth Camera (30fps + overlay)
-            </option>
-            <option value="synced">Synced Boxes (3fps coupled)</option>
+            <option value="smooth" selected>Smooth (30fps)</option>
+            <option value="synced">Synced (3fps)</option>
           </select>
         </div>
         <div class="setting-row">
-          <label>Inference Res</label>
+          <div>
+            <div class="sr-label">Inference Resolution</div>
+            <div class="sr-desc">Higher = more accurate, slower</div>
+          </div>
           <select id="h-resolution">
-            <option value="320">320p (fastest)</option>
-            <option value="480">480p (balanced)</option>
-            <option value="640" selected>640p (best quality)</option>
+            <option value="320">320p Fastest</option>
+            <option value="480">480p Balanced</option>
+            <option value="640" selected>640p Best</option>
           </select>
         </div>
         <div class="setting-row">
-          <label>Segmentation</label>
+          <div>
+            <div class="sr-label">Segmentation</div>
+            <div class="sr-desc">Precise object outlines</div>
+          </div>
           <select id="h-segmentor">
             <option value="none" selected>None (boxes only)</option>
             <option value="mobilesam">MobileSAM</option>
@@ -98,7 +168,10 @@
           </select>
         </div>
         <div class="setting-row">
-          <label>Max Duration</label>
+          <div>
+            <div class="sr-label">Max Duration</div>
+            <div class="sr-desc">Scan recording limit</div>
+          </div>
           <select id="h-duration">
             <option value="30">30 seconds</option>
             <option value="60" selected>60 seconds</option>
@@ -111,57 +184,44 @@
 
     <!-- ══════════ SCAN SCREEN ══════════ -->
     <div id="scan" class="screen">
-      <div class="scan-header">
-        <div class="rec-badge">
+      <div class="scan-top">
+        <div class="scan-pill">
           <div class="rec-dot"></div>
           <span id="s-timer">0:00</span>
         </div>
-        <div class="item-count-badge" id="s-detecting">Detecting...</div>
+        <div class="speed-pill" id="s-inference-ms">⚡ --ms</div>
+        <div class="count-pill" id="s-detecting">Detecting...</div>
       </div>
 
       <div class="scan-canvas-wrap">
         <video id="s-video" playsinline muted autoplay></video>
         <canvas id="s-canvas"></canvas>
         <div class="scan-line active" id="s-scanline"></div>
-        <div class="inference-badge" id="s-inference-ms">⚡ --ms</div>
 
-        <!-- Warmup overlay (torch.compile) -->
-        <div class="warmup-overlay" id="s-warmup" style="display: none">
+        <!-- Warmup overlay -->
+        <div class="warmup-overlay" id="s-warmup" style="display:none">
           <div class="warmup-content">
             <div class="warmup-spinner"></div>
             <div class="warmup-title">Optimizing Model</div>
-            <div class="warmup-sub" id="s-warmup-sub">
-              Compiling for faster inference...
-            </div>
+            <div class="warmup-sub" id="s-warmup-sub">Compiling for faster inference...</div>
             <div class="warmup-progress">
-              <div class="warmup-bar" id="s-warmup-bar" style="width: 0%"></div>
+              <div class="warmup-bar" id="s-warmup-bar" style="width:0%"></div>
             </div>
             <div class="warmup-step" id="s-warmup-step">1 / 3</div>
           </div>
         </div>
 
-        <!-- Camera controls overlay -->
+        <!-- Camera controls (right side) -->
         <div class="camera-controls" id="s-cam-controls">
-          <div class="zoom-control" id="s-zoom-wrap" style="display: none">
-            <span class="zoom-label" id="s-zoom-label">1.0x</span>
-            <input
-              type="range"
-              id="s-zoom"
-              min="1"
-              max="5"
-              step="0.1"
-              value="1"
-              oninput="setZoom(this.value)"
-            />
+          <div class="side-ctrl-group">
+            <button class="side-btn" id="s-torch" onclick="toggleTorch()" style="display:none">🔦</button>
+            <span class="side-label" id="s-torch-label" style="display:none">Torch</span>
           </div>
-          <button
-            class="torch-btn"
-            id="s-torch"
-            onclick="toggleTorch()"
-            style="display: none"
-          >
-            🔦
-          </button>
+          <div class="side-ctrl-group" id="s-zoom-wrap" style="display:none">
+            <button class="side-btn" id="s-zoom-btn">🔍</button>
+            <span class="side-label" id="s-zoom-label">1.0x</span>
+            <input type="range" class="zoom-slider" id="s-zoom" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+          </div>
         </div>
       </div>
 
@@ -169,51 +229,88 @@
       <div class="bubble-container" id="s-bubbles"></div>
 
       <div class="scan-footer">
-        <button class="scan-btn pause-btn" id="s-pause" onclick="togglePause()">
-          ⏸ Pause
-        </button>
-        <button class="scan-btn done-btn" onclick="finishScan()">✓ Done</button>
+        <button class="scan-action-btn secondary" id="s-pause" onclick="togglePause()">⏸ Pause</button>
+        <button class="scan-action-btn primary" onclick="finishScan()">✓ Done</button>
       </div>
     </div>
 
     <!-- ══════════ RESULTS SCREEN ══════════ -->
     <div id="results" class="screen">
-      <div class="results-header">
-        <button class="back-btn" onclick="goHome()">← Back</button>
-        <h2>Scan Results</h2>
-        <div style="width: 48px"></div>
+      <div class="results-scroll">
+        <div class="results-nav">
+          <button class="rn-back" onclick="goHome()">← Back</button>
+          <div class="rn-title">Scan Results</div>
+          <button class="rn-share" onclick="shareResults()">📤</button>
+        </div>
+
+        <!-- Stats bar -->
+        <div class="results-stats-bar" id="r-stats-bar">
+          <div class="stat-cell">
+            <div class="sc-val" id="r-item-count">—</div>
+            <div class="sc-label">Items</div>
+          </div>
+          <div class="stat-cell">
+            <div class="sc-val" id="r-duration">—</div>
+            <div class="sc-label">Duration</div>
+          </div>
+          <div class="stat-cell">
+            <div class="sc-val" id="r-avg-ms">—</div>
+            <div class="sc-label">Avg Speed</div>
+          </div>
+        </div>
+
+        <!-- Processing banner -->
+        <div class="processing-banner" id="r-processing">
+          <div class="proc-spinner"></div>
+          <div class="proc-title">Analyzing with Gemini 2.0 Flash...</div>
+          <div class="proc-sub">Building accurate inventory from captured frames</div>
+        </div>
+
+        <!-- Inventory list -->
+        <div id="r-inventory" style="display:none"></div>
+        <div id="r-total" class="results-total" style="display:none"></div>
+
+        <!-- Stats detail -->
+        <div class="results-stats-detail" id="r-stats"></div>
+
+        <div class="powered-by">
+          Detected by <strong>Florence-2</strong> · Verified by <strong>Gemini 2.0 Flash</strong>
+        </div>
       </div>
 
-      <div class="results-meta" id="r-meta"></div>
+      <!-- Bottom actions -->
+      <div class="results-bottom">
+        <button class="rb-btn primary" onclick="goHome()">Scan Again</button>
+        <button class="rb-btn outline" onclick="shareResults()">Share</button>
+        <button class="rb-btn outline" id="r-upload-btn" onclick="uploadArtifacts()">Upload</button>
+      </div>
+    </div>
 
-      <div class="processing-banner" id="r-processing">
-        <div class="spinner"></div>
-        <div style="font-size: 14px; font-weight: 600">
-          Analyzing with Gemini 2.0 Flash...
-        </div>
-        <div style="font-size: 12px; color: #888; margin-top: 4px">
-          Building accurate inventory from captured frames
+    <!-- ══════════ HISTORY SCREEN ══════════ -->
+    <div id="history" class="screen">
+      <div class="history-scroll">
+        <div class="history-title">Scan History</div>
+        <div id="hist-list">
+          <div class="history-empty">
+            <div class="he-icon">📋</div>
+            <p>No scans yet.<br>Start your first room scan!</p>
+          </div>
         </div>
       </div>
 
-      <div class="inventory-final" id="r-inventory" style="display: none"></div>
-      <div class="inventory-total" id="r-total" style="display: none"></div>
-
-      <div class="results-stats" id="r-stats"></div>
-
-      <div class="results-actions">
-        <button class="action-btn primary" onclick="goHome()">
-          SCAN AGAIN 🔄
+      <!-- Bottom Nav -->
+      <div class="bottom-nav">
+        <button class="nav-item" onclick="showScreen('home')">
+          <span class="nav-icon">🏠</span>Home
         </button>
-        <button class="action-btn secondary" onclick="shareResults()">
-          SHARE RESULTS 📤
+        <button class="nav-item" onclick="startScan()">
+          <span class="nav-icon">📷</span>Scan
         </button>
-        <button
-          class="action-btn secondary"
-          id="r-upload-btn"
-          onclick="uploadArtifacts()"
-        >
-          UPLOAD ARTIFACTS 📁
+        <button class="nav-item active">
+          <span class="nav-icon">📋</span>History
+        </button>
+        <button class="nav-item" onclick="showSettings()">
+          <span class="nav-icon">⚙️</span>Settings
         </button>
       </div>
     </div>
