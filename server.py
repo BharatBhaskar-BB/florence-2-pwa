@@ -107,7 +107,7 @@ async def detect(req: DetectRequest):
     # Run inference
     t0 = time.time()
     inputs = processor(text=req.task, images=image, return_tensors="pt")
-    inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+    inputs = {k: v.to(DEVICE, DTYPE) if (isinstance(v, torch.Tensor) and v.is_floating_point()) else v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
     inputs.pop("attention_mask", None)
 
     with torch.no_grad():
@@ -136,7 +136,7 @@ async def detect(req: DetectRequest):
 def run_inference(image, task_text):
     """Run a single Florence-2 inference and return parsed result."""
     inputs = processor(text=task_text, images=image, return_tensors="pt")
-    inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+    inputs = {k: v.to(DEVICE, DTYPE) if (isinstance(v, torch.Tensor) and v.is_floating_point()) else v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
     inputs.pop("attention_mask", None)
     with torch.no_grad():
         outputs = model.generate(
@@ -223,7 +223,7 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
 
     t0 = time.time()
     inputs = processor(text=task, images=image, return_tensors="pt")
-    inputs = {k: v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
+    inputs = {k: v.to(DEVICE, DTYPE) if (isinstance(v, torch.Tensor) and v.is_floating_point()) else v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
     inputs.pop("attention_mask", None)
 
     with torch.no_grad():
@@ -480,7 +480,12 @@ async def test_ui():
     return FileResponse("index.html")
 
 
-# PWA static files — served at both root and /florence-scanner/ for local dev
+# PWA static files — served at root, /florence-scanner/, and custom ROUTE_PREFIX
+_ROUTE_PREFIX = os.environ.get("ROUTE_PREFIX", "").rstrip("/")
+_prefixes = ["", "/florence-scanner"]
+if _ROUTE_PREFIX and _ROUTE_PREFIX not in _prefixes:
+    _prefixes.append(_ROUTE_PREFIX)
+
 def _pwa_file(name, media_type=None):
     path = os.path.join(PWA_DIR, name)
     return FileResponse(path, media_type=media_type) if media_type else FileResponse(path)
@@ -494,7 +499,7 @@ _static_files = {
     "icon-512.png": "image/png",
 }
 
-for _prefix in ["", "/florence-scanner"]:
+for _prefix in _prefixes:
     for _name, _mime in _static_files.items():
         def _make_handler(n=_name, m=_mime):
             async def handler():
