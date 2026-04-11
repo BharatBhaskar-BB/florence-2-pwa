@@ -65,6 +65,14 @@ model = AutoModelForCausalLM.from_pretrained(
     MODEL_ID, trust_remote_code=True, torch_dtype=DTYPE
 ).to(DEVICE).eval()
 
+# torch.compile for faster inference (warmup on first 2-3 calls)
+if DEVICE.type == "cuda":
+    try:
+        model = torch.compile(model, mode="reduce-overhead")
+        print("torch.compile enabled (reduce-overhead mode)")
+    except Exception as e:
+        print(f"torch.compile failed, running eager: {e}")
+
 processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
 
 print(f"Loaded in {time.time() - t0:.1f}s on {DEVICE} ({DTYPE})")
@@ -112,7 +120,7 @@ async def detect(req: DetectRequest):
 
     with torch.no_grad():
         outputs = model.generate(
-            **inputs, max_new_tokens=1024, num_beams=1, do_sample=False
+            **inputs, max_new_tokens=512, num_beams=1, do_sample=False
         )
 
     result_text = processor.batch_decode(outputs, skip_special_tokens=False)[0]
@@ -140,7 +148,7 @@ def run_inference(image, task_text):
     inputs.pop("attention_mask", None)
     with torch.no_grad():
         outputs = model.generate(
-            **inputs, max_new_tokens=1024, num_beams=1, do_sample=False
+            **inputs, max_new_tokens=512, num_beams=1, do_sample=False
         )
     result_text = processor.batch_decode(outputs, skip_special_tokens=False)[0]
     return processor.post_process_generation(result_text, task=task_text, image_size=image.size)
@@ -228,7 +236,7 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
 
     with torch.no_grad():
         outputs = model.generate(
-            **inputs, max_new_tokens=1024, num_beams=1, do_sample=False
+            **inputs, max_new_tokens=512, num_beams=1, do_sample=False
         )
 
     result_text = processor.batch_decode(outputs, skip_special_tokens=False)[0]
