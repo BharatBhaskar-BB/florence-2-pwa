@@ -213,9 +213,14 @@ body {
   animation: pulse 1s infinite;
 }
 .item-count-badge {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--accent);
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(220, 38, 38, 0.85);
+  padding: 4px 12px;
+  border-radius: 12px;
+  min-width: 32px;
+  text-align: center;
 }
 
 .scan-canvas-wrap {
@@ -351,27 +356,28 @@ body {
   color: #16a34a;
 }
 
-/* Camera controls overlay */
+/* Camera controls — right side */
 .camera-controls {
   position: absolute;
-  bottom: 80px;
-  left: 12px;
+  bottom: 90px;
   right: 12px;
   z-index: 10;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
   pointer-events: none;
 }
 .camera-controls > * {
   pointer-events: auto;
 }
 .zoom-control {
-  flex: 1;
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(0, 0, 0, 0.5);
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border-radius: 20px;
   padding: 6px 12px;
 }
@@ -418,33 +424,49 @@ body {
   background: rgba(255, 200, 0, 0.7);
 }
 
-.ticker {
+/* Floating detection bubbles */
+.bubble-container {
   position: absolute;
-  bottom: 70px;
+  bottom: 80px;
+  left: 12px;
+  width: 160px;
+  z-index: 8;
+  pointer-events: none;
+  overflow: visible;
+}
+.bubble {
+  position: absolute;
+  bottom: 0;
   left: 0;
-  right: 0;
-  z-index: 10;
-  padding: 8px 12px;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.ticker::-webkit-scrollbar {
-  display: none;
-}
-.ticker-item {
-  flex-shrink: 0;
-  background: var(--accent-dim);
-  border: 1px solid var(--accent);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 16px;
   padding: 4px 12px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--accent);
+  color: #fff;
   white-space: nowrap;
+  animation: bubble-float 3.5s ease-out forwards;
+  will-change: transform, opacity;
+}
+@keyframes bubble-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.7);
+  }
+  8% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1);
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(0.85);
+  }
 }
 
 .scan-footer {

@@ -173,9 +173,9 @@ async function startScan() {
     lastCaptureTime = Date.now() + 2000; // skip first 2s to avoid blank frames
     paused = false;
     document.getElementById('s-pause').textContent = '⏸ Pause';
-    document.getElementById('s-ticker').innerHTML = '';
     document.getElementById('s-detecting').textContent = 'Detecting...';
     _warmupDone = false;
+    resetBubbles();
 
     try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -598,12 +598,53 @@ function drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, masks) {
     }
 }
 
+// ── Floating Bubbles ───────────────────────────────────────────────────────
+let _shownBubbles = new Set(); // labels already shown as bubbles
+let _bubbleQueue = [];         // pending labels to show
+let _bubbleTimer = null;
+
 function updateTicker() {
-    const ticker = document.getElementById('s-ticker');
-    const sorted = [...detectedLabels].sort();
-    ticker.innerHTML = sorted.map(l => `<div class="ticker-item">${l}</div>`).join('');
-    // Auto-scroll to end
-    ticker.scrollLeft = ticker.scrollWidth;
+    // Queue new labels as bubbles
+    for (const label of detectedLabels) {
+        if (!_shownBubbles.has(label)) {
+            _shownBubbles.add(label);
+            _bubbleQueue.push(label);
+        }
+    }
+    // Stagger bubble creation
+    if (!_bubbleTimer && _bubbleQueue.length > 0) {
+        _bubbleTimer = setInterval(() => {
+            if (_bubbleQueue.length === 0) {
+                clearInterval(_bubbleTimer);
+                _bubbleTimer = null;
+                return;
+            }
+            spawnBubble(_bubbleQueue.shift());
+        }, 300);
+    }
+    // Update count badge
+    document.getElementById('s-detecting').textContent = `${detectedLabels.size} items`;
+}
+
+function spawnBubble(label) {
+    const container = document.getElementById('s-bubbles');
+    if (!container) return;
+    const el = document.createElement('div');
+    el.className = 'bubble';
+    el.textContent = label;
+    // Random horizontal jitter
+    el.style.left = `${Math.random() * 40}px`;
+    container.appendChild(el);
+    // Remove after animation completes
+    el.addEventListener('animationend', () => el.remove());
+}
+
+function resetBubbles() {
+    _shownBubbles.clear();
+    _bubbleQueue = [];
+    if (_bubbleTimer) { clearInterval(_bubbleTimer); _bubbleTimer = null; }
+    const container = document.getElementById('s-bubbles');
+    if (container) container.innerHTML = '';
 }
 
 // ── Finish Scan ────────────────────────────────────────────────────────────
