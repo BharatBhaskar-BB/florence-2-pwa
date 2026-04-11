@@ -473,11 +473,14 @@ function sendFrame() {
 }
 
 function handleDetectionResult(data) {
-    const bboxes = data.bboxes;
-    const labels = data.labels;
-    const masks = data.masks || null;
     const vw = video.videoWidth || 640;
     const vh = video.videoHeight || 480;
+
+    // Filter detections (normalize labels, remove noise/small boxes)
+    const filtered = filterDetections(data.bboxes, data.labels, data.image_width, data.image_height);
+    const bboxes = filtered.bboxes;
+    const labels = filtered.labels;
+    const masks = data.masks || null;
 
     // Handle warmup overlay (torch.compile)
     updateWarmupOverlay(data.warmup, data.warmup_total);
@@ -523,9 +526,9 @@ function handleDetectionResult(data) {
         badge.textContent = text;
     }
 
-    detectedLabels = new Set(labels);
+    detectedLabels = updateTemporalFilter(labels);
     updateTicker();
-    document.getElementById('s-detecting').textContent = `${detectedLabels.size} types found`;
+    document.getElementById('s-detecting').textContent = `${detectedLabels.size} items`;
 }
 
 function drawMasks(ctx, masks, scaleX, scaleY) {
