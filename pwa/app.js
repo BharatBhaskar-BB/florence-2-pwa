@@ -175,6 +175,7 @@ async function startScan() {
     document.getElementById('s-pause').textContent = '⏸ Pause';
     document.getElementById('s-ticker').innerHTML = '';
     document.getElementById('s-detecting').textContent = 'Detecting...';
+    _warmupDone = false;
 
     try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -270,6 +271,10 @@ function startOverlaySync() {
 }
 
 function connectWebSocket() {
+    // Show warmup overlay on connect (will hide once warmup completes)
+    const warmupEl = document.getElementById('s-warmup');
+    if (warmupEl) warmupEl.style.display = 'flex';
+
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${location.host}${BASE_PATH}/ws/detect`;
     console.log('Connecting WebSocket:', wsUrl);
@@ -306,6 +311,52 @@ function disconnectWebSocket() {
     }
     frameStore.clear();
     wsFrameId = 0;
+    // Hide warmup overlay
+    const warmupEl = document.getElementById('s-warmup');
+    if (warmupEl) { warmupEl.style.display = 'none'; warmupEl.classList.remove('ready'); }
+}
+
+// ── Warmup Overlay (torch.compile) ─────────────────────────────────────────
+let _warmupDone = false;
+
+function updateWarmupOverlay(count, total) {
+    const overlay = document.getElementById('s-warmup');
+    if (!overlay || _warmupDone) return;
+
+    // Server didn't send warmup info (not CUDA / no torch.compile)
+    if (count === undefined || total === undefined || total === 0) {
+        overlay.style.display = 'none';
+        _warmupDone = true;
+        return;
+    }
+
+    if (count >= total) {
+        // Warmup complete — show "Ready!" briefly then hide
+        overlay.classList.add('ready');
+        document.getElementById('s-warmup-title') ||
+            (overlay.querySelector('.warmup-title').textContent = 'Ready!');
+        overlay.querySelector('.warmup-title').textContent = 'Ready!';
+        overlay.querySelector('.warmup-sub').textContent = 'Model optimized for maximum speed';
+        overlay.querySelector('.warmup-step').textContent = '';
+        const bar = document.getElementById('s-warmup-bar');
+        if (bar) bar.style.width = '100%';
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            _warmupDone = true;
+        }, 1200);
+    } else {
+        overlay.style.display = 'flex';
+        overlay.classList.remove('ready');
+        const step = document.getElementById('s-warmup-step');
+        const bar = document.getElementById('s-warmup-bar');
+        const sub = document.getElementById('s-warmup-sub');
+        if (step) step.textContent = `${count} / ${total}`;
+        if (bar) bar.style.width = `${(count / total) * 100}%`;
+        if (sub) sub.textContent = count === 0
+            ? 'Compiling for faster inference...'
+            : `Compiling graph ${count} of ${total}...`;
+    }
 }
 
 // ── Camera Controls (Zoom + Torch) ─────────────────────────────────────────
@@ -427,6 +478,9 @@ function handleDetectionResult(data) {
     const masks = data.masks || null;
     const vw = video.videoWidth || 640;
     const vh = video.videoHeight || 480;
+
+    // Handle warmup overlay (torch.compile)
+    updateWarmupOverlay(data.warmup, data.warmup_total);
 
     if (renderMode === 'synced') {
         // Retrieve the stored frame that matches this result

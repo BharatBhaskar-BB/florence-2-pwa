@@ -77,6 +77,10 @@ processor = AutoProcessor.from_pretrained(MODEL_ID, trust_remote_code=True)
 
 print(f"Loaded in {time.time() - t0:.1f}s on {DEVICE} ({DTYPE})")
 
+# ── Warmup tracking for torch.compile ─────────────────────────────────────────
+WARMUP_THRESHOLD = 3  # torch.compile needs ~3 calls to fully compile
+_inference_count = 0
+
 # ── FastAPI App ───────────────────────────────────────────────────────────────
 
 app = FastAPI(title="Florence-2 Detection Server")
@@ -216,6 +220,9 @@ async def health():
         "device": str(DEVICE),
         "model": MODEL_ID,
         "segmentors": available_segmentors(),
+        "warmup_done": _inference_count >= WARMUP_THRESHOLD,
+        "warmup_count": min(_inference_count, WARMUP_THRESHOLD),
+        "warmup_total": WARMUP_THRESHOLD,
     }
 
 
@@ -243,6 +250,9 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
     parsed = processor.post_process_generation(result_text, task=task, image_size=image.size)
     elapsed = (time.time() - t0) * 1000
 
+    global _inference_count
+    _inference_count += 1
+
     task_result = parsed.get(task, {})
     bboxes = task_result.get("bboxes", [])
     labels = task_result.get("labels", [])
@@ -254,6 +264,8 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
         "seg_time_ms": 0.0,
         "image_width": w,
         "image_height": h,
+        "warmup": min(_inference_count, WARMUP_THRESHOLD),
+        "warmup_total": WARMUP_THRESHOLD,
     }
 
     # Optional SAM segmentation on detected bboxes

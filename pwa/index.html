@@ -125,6 +125,19 @@
         <div class="scan-line active" id="s-scanline"></div>
         <div class="inference-badge" id="s-inference-ms">⚡ --ms</div>
 
+        <!-- Warmup overlay (torch.compile) -->
+        <div class="warmup-overlay" id="s-warmup" style="display:none">
+          <div class="warmup-content">
+            <div class="warmup-spinner"></div>
+            <div class="warmup-title">Optimizing Model</div>
+            <div class="warmup-sub" id="s-warmup-sub">Compiling for faster inference...</div>
+            <div class="warmup-progress">
+              <div class="warmup-bar" id="s-warmup-bar" style="width:0%"></div>
+            </div>
+            <div class="warmup-step" id="s-warmup-step">1 / 3</div>
+          </div>
+        </div>
+
         <!-- Camera controls overlay -->
         <div class="camera-controls" id="s-cam-controls">
           <div class="zoom-control" id="s-zoom-wrap" style="display: none">
