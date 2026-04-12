@@ -129,11 +129,11 @@ let _obPage = 1;
 function nextOnboard() {
     if (_obPage >= 3) { finishOnboard(); return; }
     _obPage++;
-    ['ob-page-1','ob-page-2','ob-page-3'].forEach((id, i) => {
+    ['ob-page-1', 'ob-page-2', 'ob-page-3'].forEach((id, i) => {
         const p = i + 1;
         document.getElementById(id).className = 'ob-page ' + (p < _obPage ? 'left' : p === _obPage ? 'center' : 'right');
     });
-    ['ob-dot-1','ob-dot-2','ob-dot-3'].forEach((id, i) => {
+    ['ob-dot-1', 'ob-dot-2', 'ob-dot-3'].forEach((id, i) => {
         document.getElementById(id).className = 'ob-dot' + (i + 1 === _obPage ? ' active' : '');
     });
     document.getElementById('ob-next-btn').textContent = _obPage === 3 ? 'GET STARTED' : 'NEXT';
