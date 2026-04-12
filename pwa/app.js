@@ -309,16 +309,6 @@ function startOverlaySync() {
             const now = Date.now();
             const age = now - lastDetection.timestamp;
 
-            // Fade out stale detections — after 400ms start fading, gone by 700ms
-            if (age > 700) {
-                // Too old — don't draw at all (camera moved away)
-                requestAnimationFrame(renderLoop);
-                return;
-            }
-            const opacity = age > 400 ? 1.0 - (age - 400) / 300 : 1.0;
-            ctx.save();
-            ctx.globalAlpha = opacity;
-
             // Interpolate bboxes using velocity (compensate for camera motion lag)
             let bboxes = lastDetection.bboxes;
             let masks = lastDetection.masks;
@@ -347,7 +337,6 @@ function startOverlaySync() {
             }
             drawDetections(ctx, bboxes, lastDetection.labels,
                 lastDetection.scaleX, lastDetection.scaleY, style, masks);
-            ctx.restore();
         }
 
         requestAnimationFrame(renderLoop);
