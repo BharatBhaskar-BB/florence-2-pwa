@@ -229,9 +229,11 @@ async def health():
 # ── Sync detection helper ─────────────────────────────────────────────────────
 
 def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
-    """Run Florence-2 detection synchronously (for use in thread pool)."""
-    import numpy as np
-
+    """Run Florence-2 detection synchronously (for use in thread pool).
+    
+    When segmentor != 'none', detection result is returned WITHOUT masks.
+    Masks are computed separately via sync_segment().
+    """
     img_bytes = base64.b64decode(image_b64)
     image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
     w, h = image.size
@@ -257,7 +259,7 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
     bboxes = task_result.get("bboxes", [])
     labels = task_result.get("labels", [])
 
-    result = {
+    return {
         "bboxes": bboxes,
         "labels": labels,
         "time_ms": round(elapsed, 1),
@@ -268,18 +270,18 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
         "warmup_total": WARMUP_THRESHOLD,
     }
 
-    # Optional SAM segmentation on detected bboxes
-    if segmentor != "none" and bboxes:
-        try:
-            pred = get_predictor(segmentor, DEVICE)
-            image_np = np.array(image)
-            masks, seg_ms = segment_bboxes(pred, image_np, bboxes)
-            result["masks"] = masks
-            result["seg_time_ms"] = round(seg_ms, 1)
-        except Exception as e:
-            print(f"Segmentation error ({segmentor}): {e}")
 
-    return result
+def sync_segment(image_b64: str, bboxes: list, segmentor: str):
+    """Run SAM segmentation synchronously on pre-detected bboxes."""
+    import numpy as np
+
+    img_bytes = base64.b64decode(image_b64)
+    image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+
+    pred = get_predictor(segmentor, DEVICE)
+    image_np = np.array(image)
+    masks, seg_ms = segment_bboxes(pred, image_np, bboxes, name=segmentor)
+    return masks, round(seg_ms, 1)
 
 
 # ── WebSocket Detection ──────────────────────────────────────────────────────
@@ -329,11 +331,30 @@ async def ws_detect(websocket: WebSocket):
                 task = data.get("task", "<OD>")
                 segmentor = data.get("segmentor", "none")
 
+                # Step 1: Detection only — send immediately for low latency
                 result = await asyncio.to_thread(sync_detect, image_b64, task, segmentor)
                 result["frame_id"] = frame_id
 
                 if connected:
                     await websocket.send_json(result)
+
+                # Step 2: Segmentation async — send masks as follow-up message
+                if segmentor != "none" and result["bboxes"] and connected:
+                    try:
+                        masks, seg_ms = await asyncio.to_thread(
+                            sync_segment, image_b64, result["bboxes"], segmentor
+                        )
+                        if connected:
+                            await websocket.send_json({
+                                "type": "masks",
+                                "frame_id": frame_id,
+                                "masks": masks,
+                                "seg_time_ms": seg_ms,
+                                "image_width": result["image_width"],
+                                "image_height": result["image_height"],
+                            })
+                    except Exception as e:
+                        print(f"Async segmentation error: {e}")
         except WebSocketDisconnect:
             connected = False
         except Exception as e:

@@ -289,6 +289,7 @@ function togglePause() {
 //   "synced"  — coupled: canvas shows captured frame + boxes together (synced perfectly)
 
 let lastDetection = null;
+let prevDetection = null;  // previous detection for velocity estimation
 let renderMode = 'smooth';
 
 function startOverlaySync() {
@@ -305,11 +306,37 @@ function startOverlaySync() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (lastDetection) {
             const style = document.getElementById('h-style').value;
-            if (lastDetection.masks) {
-                drawMasks(ctx, lastDetection.masks, lastDetection.scaleX, lastDetection.scaleY);
+            const now = Date.now();
+            const age = now - lastDetection.timestamp;
+
+            // Interpolate bboxes using velocity (compensate for camera motion lag)
+            let bboxes = lastDetection.bboxes;
+            let masks = lastDetection.masks;
+            if (lastDetection.velocity && age > 0 && age < 500) {
+                const t = age / 1000; // seconds since detection
+                bboxes = bboxes.map((bb, i) => {
+                    const v = lastDetection.velocity[i];
+                    if (!v) return bb;
+                    return [bb[0] + v[0] * t, bb[1] + v[1] * t,
+                            bb[2] + v[2] * t, bb[3] + v[3] * t];
+                });
+                // Shift mask polygons by same delta as their bbox center
+                if (masks) {
+                    masks = masks.map((poly, i) => {
+                        const v = lastDetection.velocity[i];
+                        if (!v || !poly || poly.length < 3) return poly;
+                        const dx = ((v[0] + v[2]) / 2) * t;
+                        const dy = ((v[1] + v[3]) / 2) * t;
+                        return poly.map(pt => [pt[0] + dx, pt[1] + dy]);
+                    });
+                }
             }
-            drawDetections(ctx, lastDetection.bboxes, lastDetection.labels,
-                lastDetection.scaleX, lastDetection.scaleY, style, lastDetection.masks);
+
+            if (masks) {
+                drawMasks(ctx, masks, lastDetection.scaleX, lastDetection.scaleY);
+            }
+            drawDetections(ctx, bboxes, lastDetection.labels,
+                lastDetection.scaleX, lastDetection.scaleY, style, masks);
         }
 
         requestAnimationFrame(renderLoop);
@@ -335,7 +362,12 @@ function connectWebSocket() {
     };
 
     ws.onmessage = (e) => {
-        handleDetectionResult(JSON.parse(e.data));
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'masks') {
+            handleMasksResult(msg);
+        } else {
+            handleDetectionResult(msg);
+        }
     };
 
     ws.onclose = () => {
@@ -527,10 +559,22 @@ function handleDetectionResult(data) {
     const filtered = filterDetections(data.bboxes, data.labels, data.image_width, data.image_height);
     const bboxes = filtered.bboxes;
     const labels = filtered.labels;
-    const masks = data.masks || null;
 
     // Handle warmup overlay (torch.compile)
     updateWarmupOverlay(data.warmup, data.warmup_total);
+
+    // Compute per-bbox velocity from previous detection (pixels/sec in inference coords)
+    let velocity = null;
+    if (prevDetection && prevDetection.bboxes.length === bboxes.length) {
+        const dt = (Date.now() - prevDetection.timestamp) / 1000;
+        if (dt > 0 && dt < 2) {
+            velocity = bboxes.map((bb, i) => {
+                const pb = prevDetection.bboxes[i];
+                return [(bb[0] - pb[0]) / dt, (bb[1] - pb[1]) / dt,
+                        (bb[2] - pb[2]) / dt, (bb[3] - pb[3]) / dt];
+            });
+        }
+    }
 
     if (renderMode === 'synced') {
         // Retrieve the stored frame that matches this result
@@ -542,40 +586,82 @@ function handleDetectionResult(data) {
             const scaleX = stored.width / data.image_width;
             const scaleY = stored.height / data.image_height;
             const style = document.getElementById('h-style').value;
-            if (masks) drawMasks(ctx, masks, scaleX, scaleY);
-            drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, masks);
+            drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, null);
+            // Store info for async masks overlay
+            lastDetection = {
+                bboxes, labels, masks: null, velocity,
+                scaleX, scaleY, frameId: data.frame_id,
+                timestamp: Date.now(),
+            };
         }
-        // Clean up frames older than this result
+        // Clean up frames older than this result (but keep this one for masks)
         for (const key of frameStore.keys()) {
-            if (key <= data.frame_id) frameStore.delete(key);
+            if (key < data.frame_id) frameStore.delete(key);
         }
     } else {
         // Smooth: store result for the 30fps renderLoop
+        prevDetection = lastDetection;
         lastDetection = {
             bboxes,
             labels,
-            masks,
+            masks: null,  // masks arrive separately
+            velocity,
             scaleX: vw / data.image_width,
             scaleY: vh / data.image_height,
+            frameId: data.frame_id,
             timestamp: Date.now(),
         };
     }
 
     frameCount++;
-    const totalInfMs = data.time_ms + (data.seg_time_ms || 0);
-    scanStats.inferenceSum += totalInfMs;
+    scanStats.inferenceSum += data.time_ms;
     scanStats.inferenceCount++;
 
     const badge = document.getElementById('s-inference-ms');
     if (badge) {
-        let text = `⚡ ${Math.round(data.time_ms)}ms`;
-        if (data.seg_time_ms) text += ` +${Math.round(data.seg_time_ms)}ms seg`;
-        badge.textContent = text;
+        badge.textContent = `⚡ ${Math.round(data.time_ms)}ms`;
     }
 
     detectedLabels = updateTemporalFilter(labels);
     updateTicker();
     document.getElementById('s-detecting').textContent = `${detectedLabels.size} items`;
+}
+
+function handleMasksResult(data) {
+    // Async masks arrived for a previous frame
+    const masks = data.masks || null;
+    if (!masks || !lastDetection) return;
+
+    // Only apply if masks match the latest detection's frame
+    if (lastDetection.frameId !== data.frame_id) return;
+
+    if (renderMode === 'synced') {
+        // Re-draw stored frame with masks on top
+        const stored = frameStore.get(data.frame_id);
+        if (stored) {
+            canvas.width = stored.width;
+            canvas.height = stored.height;
+            ctx.putImageData(stored, 0, 0);
+            const scaleX = stored.width / data.image_width;
+            const scaleY = stored.height / data.image_height;
+            const style = document.getElementById('h-style').value;
+            drawMasks(ctx, masks, scaleX, scaleY);
+            drawDetections(ctx, lastDetection.bboxes, lastDetection.labels,
+                scaleX, scaleY, style, masks);
+        }
+        // Now safe to clean up this frame
+        frameStore.delete(data.frame_id);
+    } else {
+        // Smooth: merge masks into current detection for renderLoop
+        lastDetection.masks = masks;
+    }
+
+    // Update timing badge
+    const badge = document.getElementById('s-inference-ms');
+    if (badge && data.seg_time_ms) {
+        const det = Math.round(lastDetection.timestamp ? scanStats.inferenceSum / scanStats.inferenceCount : 0);
+        badge.textContent = `⚡ ${det}ms +${Math.round(data.seg_time_ms)}ms seg`;
+    }
 }
 
 function drawMasks(ctx, masks, scaleX, scaleY) {
