@@ -304,10 +304,20 @@ function startOverlaySync() {
         }
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        if (lastDetection) {
+        if (lastDetection && lastDetection.bboxes.length > 0) {
             const style = document.getElementById('h-style').value;
             const now = Date.now();
             const age = now - lastDetection.timestamp;
+
+            // Fade out stale detections — after 400ms start fading, gone by 700ms
+            if (age > 700) {
+                // Too old — don't draw at all (camera moved away)
+                requestAnimationFrame(renderLoop);
+                return;
+            }
+            const opacity = age > 400 ? 1.0 - (age - 400) / 300 : 1.0;
+            ctx.save();
+            ctx.globalAlpha = opacity;
 
             // Interpolate bboxes using velocity (compensate for camera motion lag)
             let bboxes = lastDetection.bboxes;
@@ -337,6 +347,7 @@ function startOverlaySync() {
             }
             drawDetections(ctx, bboxes, lastDetection.labels,
                 lastDetection.scaleX, lastDetection.scaleY, style, masks);
+            ctx.restore();
         }
 
         requestAnimationFrame(renderLoop);
@@ -612,11 +623,14 @@ function handleDetectionResult(data) {
         }
     } else {
         // Smooth: store result for the 30fps renderLoop
+        // Carry forward previous masks to avoid blink (null gap between detect & masks)
+        const carryMasks = (segActive && bboxes.length > 0 && prevDetection && prevDetection.masks)
+            ? prevDetection.masks : null;
         prevDetection = lastDetection;
         lastDetection = {
             bboxes,
             labels,
-            masks: null,  // masks arrive separately
+            masks: carryMasks,  // keep old masks until new ones arrive
             velocity,
             scaleX: vw / data.image_width,
             scaleY: vh / data.image_height,
