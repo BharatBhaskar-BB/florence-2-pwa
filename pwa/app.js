@@ -318,7 +318,7 @@ function startOverlaySync() {
                     const v = lastDetection.velocity[i];
                     if (!v) return bb;
                     return [bb[0] + v[0] * t, bb[1] + v[1] * t,
-                            bb[2] + v[2] * t, bb[3] + v[3] * t];
+                    bb[2] + v[2] * t, bb[3] + v[3] * t];
                 });
                 // Shift mask polygons by same delta as their bbox center
                 if (masks) {
@@ -571,28 +571,40 @@ function handleDetectionResult(data) {
             velocity = bboxes.map((bb, i) => {
                 const pb = prevDetection.bboxes[i];
                 return [(bb[0] - pb[0]) / dt, (bb[1] - pb[1]) / dt,
-                        (bb[2] - pb[2]) / dt, (bb[3] - pb[3]) / dt];
+                (bb[2] - pb[2]) / dt, (bb[3] - pb[3]) / dt];
             });
         }
     }
 
+    const segmentor = document.getElementById('h-segmentor').value;
+    const segActive = segmentor && segmentor !== 'none';
+
     if (renderMode === 'synced') {
-        // Retrieve the stored frame that matches this result
-        const stored = frameStore.get(data.frame_id);
-        if (stored) {
-            canvas.width = stored.width;
-            canvas.height = stored.height;
-            ctx.putImageData(stored, 0, 0);
-            const scaleX = stored.width / data.image_width;
-            const scaleY = stored.height / data.image_height;
-            const style = document.getElementById('h-style').value;
-            drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, null);
-            // Store info for async masks overlay
-            lastDetection = {
-                bboxes, labels, masks: null, velocity,
-                scaleX, scaleY, frameId: data.frame_id,
-                timestamp: Date.now(),
-            };
+        // Store detection info for masks overlay
+        lastDetection = {
+            bboxes, labels, masks: null, velocity,
+            scaleX: 1, scaleY: 1, frameId: data.frame_id,
+            imageWidth: data.image_width, imageHeight: data.image_height,
+            timestamp: Date.now(),
+        };
+
+        if (segActive && bboxes.length > 0) {
+            // Segmentor enabled — DON'T render yet. Keep previous frame visible.
+            // Wait for handleMasksResult to render complete frame (no blink).
+        } else {
+            // No segmentor or no detections — render immediately
+            const stored = frameStore.get(data.frame_id);
+            if (stored) {
+                canvas.width = stored.width;
+                canvas.height = stored.height;
+                ctx.putImageData(stored, 0, 0);
+                const scaleX = stored.width / data.image_width;
+                const scaleY = stored.height / data.image_height;
+                lastDetection.scaleX = scaleX;
+                lastDetection.scaleY = scaleY;
+                const style = document.getElementById('h-style').value;
+                drawDetections(ctx, bboxes, labels, scaleX, scaleY, style, null);
+            }
         }
         // Clean up frames older than this result (but keep this one for masks)
         for (const key of frameStore.keys()) {
@@ -635,8 +647,10 @@ function handleMasksResult(data) {
     // Only apply if masks match the latest detection's frame
     if (lastDetection.frameId !== data.frame_id) return;
 
+    lastDetection.masks = masks;
+
     if (renderMode === 'synced') {
-        // Re-draw stored frame with masks on top
+        // Render the complete frame: stored pixels + masks + detections (no blink)
         const stored = frameStore.get(data.frame_id);
         if (stored) {
             canvas.width = stored.width;
@@ -651,16 +665,14 @@ function handleMasksResult(data) {
         }
         // Now safe to clean up this frame
         frameStore.delete(data.frame_id);
-    } else {
-        // Smooth: merge masks into current detection for renderLoop
-        lastDetection.masks = masks;
     }
+    // Smooth mode: masks already set on lastDetection, renderLoop picks them up
 
     // Update timing badge
     const badge = document.getElementById('s-inference-ms');
     if (badge && data.seg_time_ms) {
-        const det = Math.round(lastDetection.timestamp ? scanStats.inferenceSum / scanStats.inferenceCount : 0);
-        badge.textContent = `⚡ ${det}ms +${Math.round(data.seg_time_ms)}ms seg`;
+        const avgDet = Math.round(scanStats.inferenceCount > 0 ? scanStats.inferenceSum / scanStats.inferenceCount : 0);
+        badge.textContent = `⚡ ${avgDet}ms +${Math.round(data.seg_time_ms)}ms seg`;
     }
 }
 
