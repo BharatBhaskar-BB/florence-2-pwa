@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bundlebox-v2';
+const CACHE_NAME = 'bundlebox-v3';
 const ASSETS = ['./', 'app.js', 'style.css', 'manifest.json'];
 
 self.addEventListener('install', (e) => {

@@ -1,5 +1,8 @@
 # Florence-2 BundleBox PWA — Python dependencies
-# Note: torch + torchvision installed separately via CUDA index in Dockerfile
+# Note: torch + torchvision come from the Docker base image (pytorch:2.4.0-cuda12.4)
+# Do NOT upgrade them — the GCP driver only supports up to CUDA 12.8
+torch==2.4.0
+torchvision==0.19.0
 transformers==4.46.3
 einops==0.8.2
 timm==1.0.26
