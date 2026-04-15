@@ -864,10 +864,10 @@ function stopSpotterMode() {
 
     // Deactivate spotter UI
     ['s-spotter-sweep', 's-spotter-corners', 's-spotter-sparkles',
-     's-spotter-badge', 's-spotter-toasts'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.classList.remove('active');
-    });
+        's-spotter-badge', 's-spotter-toasts'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('active');
+        });
     document.getElementById('s-spotter-linger').classList.remove('active');
 
     // Clear sparkles and toasts

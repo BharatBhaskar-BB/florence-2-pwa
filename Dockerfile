@@ -17,8 +17,12 @@ RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir git+https://github.com/ChaoningZhang/MobileSAM.git
 
 # Try SAM 2 (optional — for higher-quality segmentation)
-RUN pip install --no-cache-dir sam2 || \
+# Use --no-deps to prevent sam2 from upgrading torch to an incompatible CUDA version
+RUN pip install --no-cache-dir --no-deps sam2 || \
     echo "WARNING: SAM 2 install failed — only MobileSAM will be available"
+
+# Force torch back to base image version (sam2/other deps may have upgraded it)
+RUN pip install --no-cache-dir torch==2.4.0 torchvision==0.19.0 --index-url https://download.pytorch.org/whl/cu124
 
 # Pre-download Florence-2-base model + processor (~500MB)
 # This bakes the model into the image so startup is instant
