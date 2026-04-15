@@ -952,10 +952,11 @@ function spotterAddToast(label) {
     const container = document.getElementById('s-spotter-toasts');
     if (!container) return;
 
+    const display = label.charAt(0).toUpperCase() + label.slice(1);
     const el = document.createElement('div');
     el.className = 'spotter-toast fresh';
     el.innerHTML = `<span class="spotter-toast-check">\u2713</span>` +
-        `<span class="spotter-toast-label">${label}</span>` +
+        `<span class="spotter-toast-label">${display}</span>` +
         `<span class="spotter-toast-time">now</span>`;
     container.appendChild(el);
     _spotterToastEls.push({ el, time: Date.now(), label });
