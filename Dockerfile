@@ -16,10 +16,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir git+https://github.com/ChaoningZhang/MobileSAM.git
 
-# Try EfficientViT-SAM (optional — needs scipy/meson which may fail in some base images)
-RUN pip install --no-cache-dir scipy && \
-    pip install --no-cache-dir git+https://github.com/mit-han-lab/efficientvit.git || \
-    echo "WARNING: EfficientViT-SAM install failed — only MobileSAM will be available"
+# Try SAM 2 (optional — for higher-quality segmentation)
+RUN pip install --no-cache-dir sam2 || \
+    echo "WARNING: SAM 2 install failed — only MobileSAM will be available"
 
 # Pre-download Florence-2-base model + processor (~500MB)
 # This bakes the model into the image so startup is instant
@@ -37,8 +36,8 @@ p = hf_hub_download(repo_id='dhkim2810/MobileSAM', filename='mobile_sam.pt'); \
 shutil.copy2(p, '/app/weights/mobile_sam.pt'); \
 print('MobileSAM weights cached')"
 
-# Pre-download EfficientViT-SAM-L0 weights (~140MB) — only if package installed
-RUN python -c "exec('try:\\n from huggingface_hub import hf_hub_download\\n import shutil\\n p = hf_hub_download(repo_id=\"han-cai/efficientvit-sam\", filename=\"l0.pt\")\\n shutil.copy2(p, \"/app/weights/efficientvit_sam_l0.pt\")\\n print(\"EfficientViT-SAM weights cached\")\\nexcept Exception as e:\\n print(f\"Skipping EfficientViT weights: {e}\")')"
+# Pre-download SAM 2 Tiny weights (~39MB) — only if package installed
+RUN python -c "exec('try:\n from sam2.sam2_image_predictor import SAM2ImagePredictor\n SAM2ImagePredictor.from_pretrained(\"facebook/sam2.1-hiera-tiny\")\n print(\"SAM 2 Tiny weights cached\")\nexcept Exception as e:\n print(f\"Skipping SAM 2 weights: {e}\")')"
 
 # Copy application code
 COPY server.py .

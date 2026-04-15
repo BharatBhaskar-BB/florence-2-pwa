@@ -1,0 +1,1210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>BundleBox — Spotter Mode + Sparkle Effect</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --bg: #0a0a0a;
+        --surface: #1a1a1a;
+        --accent: #10b981;
+        --red: #ef4444;
+        --orange: #f59e0b;
+        --text: #f9fafb;
+        --text-dim: #9ca3af;
+        --text-light: #6b7280;
+      }
+      html,
+      body {
+        height: 100%;
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow-x: hidden;
+      }
+
+      h1 {
+        text-align: center;
+        font:
+          800 24px "Inter",
+          sans-serif;
+        margin: 24px 0 4px;
+      }
+      .subtitle {
+        text-align: center;
+        font:
+          400 13px "Inter",
+          sans-serif;
+        color: var(--text-dim);
+        margin-bottom: 24px;
+      }
+
+      .phone-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 36px;
+        padding: 0 16px 40px;
+      }
+      .phone-col {
+        text-align: center;
+      }
+      .phone-col h3 {
+        color: var(--text-dim);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 10px;
+      }
+      .phone-col .desc {
+        max-width: 320px;
+        font:
+          400 12px/1.5 "Inter",
+          sans-serif;
+        color: var(--text-light);
+        margin-top: 10px;
+      }
+
+      /* ═══ Phone Frame ═══ */
+      .phone {
+        width: 320px;
+        height: 640px;
+        border-radius: 36px;
+        border: 3px solid #444;
+        background: #000;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Fake camera feed */
+      .camera-feed {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 30% 60%, #2d1f0f 0%, transparent 50%),
+          radial-gradient(ellipse at 70% 30%, #1a2a1a 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            #1a1a2e 0%,
+            #16213e 30%,
+            #0f3460 60%,
+            #1a1a2e 100%
+          );
+      }
+      .camera-feed.scene2 {
+        background:
+          radial-gradient(ellipse at 60% 40%, #1f1a2d 0%, transparent 50%),
+          radial-gradient(ellipse at 30% 70%, #1a2a20 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            #1a1a2e 0%,
+            #2e1a3e 30%,
+            #1a2e4e 60%,
+            #1a1a2e 100%
+          );
+      }
+
+      /* Furniture silhouettes */
+      .furniture {
+        position: absolute;
+        border-radius: 6px;
+        opacity: 0.15;
+      }
+      .furniture.sofa {
+        left: 20px;
+        top: 280px;
+        width: 140px;
+        height: 60px;
+        background: #8b7355;
+        border-radius: 8px 8px 4px 4px;
+      }
+      .furniture.table {
+        left: 100px;
+        top: 360px;
+        width: 100px;
+        height: 50px;
+        background: #5c4033;
+      }
+      .furniture.lamp {
+        right: 40px;
+        top: 200px;
+        width: 30px;
+        height: 80px;
+        background: #d4a574;
+        border-radius: 15px 15px 4px 4px;
+      }
+      .furniture.tv {
+        left: 80px;
+        top: 140px;
+        width: 160px;
+        height: 90px;
+        background: #2a2a3a;
+        border-radius: 4px;
+        border: 1px solid #444;
+      }
+      .furniture.plant {
+        left: 30px;
+        top: 180px;
+        width: 35px;
+        height: 60px;
+        background: #2d5a27;
+        border-radius: 50% 50% 4px 4px;
+      }
+      .furniture.shelf {
+        right: 20px;
+        top: 120px;
+        width: 70px;
+        height: 100px;
+        background: #5c4033;
+      }
+      .furniture.rug {
+        left: 60px;
+        top: 420px;
+        width: 200px;
+        height: 70px;
+        background: #8b4513;
+        border-radius: 50%;
+        opacity: 0.1;
+      }
+      .furniture.chair {
+        right: 60px;
+        top: 380px;
+        width: 50px;
+        height: 55px;
+        background: #6b5b4a;
+      }
+
+      /* status bar */
+      .status-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        z-index: 20;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+      }
+      .status-bar .time {
+        font:
+          600 14px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .status-bar .icons {
+        display: flex;
+        gap: 5px;
+        font-size: 12px;
+        color: #fff;
+      }
+
+      /* ═══ Sparkle / Scanning Particles ═══ */
+      .sparkle-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 5;
+        pointer-events: none;
+        overflow: hidden;
+      }
+
+      .sparkle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #fff;
+        opacity: 0;
+        filter: blur(0.5px);
+      }
+
+      /* 4-point star shape via box-shadow */
+      .sparkle.star {
+        width: 2px;
+        height: 2px;
+        border-radius: 0;
+        background: transparent;
+        box-shadow:
+          0 -4px 0 0 rgba(255, 255, 255, 0.9),
+          0 4px 0 0 rgba(255, 255, 255, 0.9),
+          -4px 0 0 0 rgba(255, 255, 255, 0.9),
+          4px 0 0 0 rgba(255, 255, 255, 0.9),
+          0 -2px 0 0 rgba(16, 185, 129, 0.6),
+          0 2px 0 0 rgba(16, 185, 129, 0.6),
+          -2px 0 0 0 rgba(16, 185, 129, 0.6),
+          2px 0 0 0 rgba(16, 185, 129, 0.6);
+        filter: blur(0.3px);
+      }
+
+      /* Diagonal star */
+      .sparkle.star-diag {
+        width: 2px;
+        height: 2px;
+        border-radius: 0;
+        background: transparent;
+        transform: rotate(45deg);
+        box-shadow:
+          0 -3px 0 0 rgba(255, 255, 255, 0.8),
+          0 3px 0 0 rgba(255, 255, 255, 0.8),
+          -3px 0 0 0 rgba(255, 255, 255, 0.8),
+          3px 0 0 0 rgba(255, 255, 255, 0.8);
+        filter: blur(0.3px);
+      }
+
+      /* Soft glow dot */
+      .sparkle.glow {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: radial-gradient(
+          circle,
+          rgba(16, 185, 129, 0.8) 0%,
+          transparent 70%
+        );
+        filter: blur(1px);
+      }
+
+      /* Animation keyframes — different timings for organic feel */
+      @keyframes sparkle1 {
+        0% {
+          opacity: 0;
+          transform: scale(0) translateY(0);
+        }
+        15% {
+          opacity: 1;
+          transform: scale(1.2) translateY(-5px);
+        }
+        40% {
+          opacity: 0.8;
+          transform: scale(0.8) translateY(-15px);
+        }
+        70% {
+          opacity: 0.4;
+          transform: scale(0.6) translateY(-25px);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0) translateY(-40px);
+        }
+      }
+      @keyframes sparkle2 {
+        0% {
+          opacity: 0;
+          transform: scale(0) translate(0, 0);
+        }
+        20% {
+          opacity: 1;
+          transform: scale(1) translate(3px, -8px);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(1.3) translate(-2px, -18px);
+        }
+        80% {
+          opacity: 0.3;
+          transform: scale(0.5) translate(5px, -30px);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0) translate(0, -45px);
+        }
+      }
+      @keyframes sparkle3 {
+        0% {
+          opacity: 0;
+          transform: scale(0) rotate(0deg);
+        }
+        10% {
+          opacity: 0.9;
+          transform: scale(1.4) rotate(20deg);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1) rotate(45deg);
+        }
+        60% {
+          opacity: 0.5;
+          transform: scale(0.7) rotate(60deg);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0) rotate(90deg);
+        }
+      }
+      @keyframes sparkleFloat {
+        0% {
+          opacity: 0;
+          transform: scale(0) translateY(10px);
+        }
+        25% {
+          opacity: 0.6;
+          transform: scale(1) translateY(0);
+        }
+        75% {
+          opacity: 0.4;
+          transform: scale(0.8) translateY(-20px);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0) translateY(-35px);
+        }
+      }
+      @keyframes sparklePop {
+        0% {
+          opacity: 0;
+          transform: scale(0);
+        }
+        30% {
+          opacity: 1;
+          transform: scale(1.5);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(0.9);
+        }
+        100% {
+          opacity: 0;
+          transform: scale(0);
+        }
+      }
+
+      /* Scanning sweep line (Google Lens style) */
+      .scan-sweep {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .scan-sweep::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(16, 185, 129, 0.1) 8%,
+          rgba(16, 185, 129, 0.6) 25%,
+          rgba(16, 185, 129, 0.9) 50%,
+          rgba(16, 185, 129, 0.6) 75%,
+          rgba(16, 185, 129, 0.1) 92%,
+          transparent 100%
+        );
+        box-shadow:
+          0 0 8px rgba(16, 185, 129, 0.5),
+          0 0 20px rgba(16, 185, 129, 0.35),
+          0 0 40px rgba(16, 185, 129, 0.15);
+        animation: sweepDown 3.5s ease-in-out infinite;
+      }
+      @keyframes sweepDown {
+        0% {
+          top: -3px;
+          opacity: 0;
+        }
+        8% {
+          opacity: 1;
+        }
+        50% {
+          top: 100%;
+          opacity: 0.85;
+        }
+        51% {
+          opacity: 0;
+        }
+        100% {
+          top: -3px;
+          opacity: 0;
+        }
+      }
+
+      /* Corner brackets (scanning frame) */
+      .scan-corners {
+        position: absolute;
+        inset: 30px;
+        z-index: 4;
+        pointer-events: none;
+        border: none;
+        opacity: 0.25;
+      }
+      .scan-corners::before,
+      .scan-corners::after,
+      .scan-corners .c1::before,
+      .scan-corners .c1::after {
+        content: "";
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-color: var(--accent);
+        border-style: solid;
+        border-width: 0;
+      }
+      .scan-corners::before {
+        top: 0;
+        left: 0;
+        border-top-width: 2px;
+        border-left-width: 2px;
+        border-radius: 4px 0 0 0;
+      }
+      .scan-corners::after {
+        top: 0;
+        right: 0;
+        border-top-width: 2px;
+        border-right-width: 2px;
+        border-radius: 0 4px 0 0;
+      }
+      .scan-corners .c1::before {
+        bottom: 0;
+        left: 0;
+        border-bottom-width: 2px;
+        border-left-width: 2px;
+        border-radius: 0 0 0 4px;
+      }
+      .scan-corners .c1::after {
+        bottom: 0;
+        right: 0;
+        border-bottom-width: 2px;
+        border-right-width: 2px;
+        border-radius: 0 0 4px 0;
+      }
+
+      /* ═══ HUD ═══ */
+      .spotter-hud {
+        position: absolute;
+        top: 50px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 20;
+      }
+      .tally-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font:
+          700 14px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .tally-pill .count {
+        color: var(--accent);
+      }
+      .timer-pill {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font:
+          600 13px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .fps-pill {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font:
+          500 11px "Inter",
+          sans-serif;
+        color: var(--accent);
+      }
+
+      /* Scanning indicator */
+      .scanning-badge {
+        position: absolute;
+        top: 82px;
+        left: 12px;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        padding: 4px 12px 4px 8px;
+        border-radius: 10px;
+      }
+      .scan-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: scanDotPulse 1.5s ease-in-out infinite;
+      }
+      @keyframes scanDotPulse {
+        0%,
+        100% {
+          opacity: 0.4;
+          transform: scale(0.8);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.2);
+        }
+      }
+      .scanning-badge span {
+        font:
+          500 10px "Inter",
+          sans-serif;
+        color: var(--accent);
+        letter-spacing: 0.5px;
+      }
+
+      /* ═══ Toast Cards ═══ */
+      .toast-stack {
+        position: absolute;
+        bottom: 100px;
+        right: 12px;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 6px;
+        z-index: 20;
+        pointer-events: none;
+      }
+      .toast-card {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 8px 14px;
+        border-radius: 12px;
+        animation: toastIn 0.3s ease-out both;
+        white-space: nowrap;
+      }
+      .toast-card.fading {
+        opacity: 0.4;
+        transform: translateX(10px);
+        transition: all 0.5s;
+      }
+      .toast-card.fresh {
+        border-color: rgba(16, 185, 129, 0.6);
+      }
+      .toast-check {
+        color: var(--accent);
+        font-size: 14px;
+      }
+      .toast-label {
+        font:
+          600 13px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .toast-time {
+        font:
+          400 10px "Inter",
+          sans-serif;
+        color: var(--text-light);
+        margin-left: 4px;
+      }
+
+      @keyframes toastIn {
+        from {
+          transform: translateX(40px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      /* ═══ Linger Nudge ═══ */
+      .linger-nudge {
+        position: absolute;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        padding: 10px 20px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 20;
+        animation: nudgePulse 2s ease-in-out infinite;
+      }
+      .linger-text {
+        font:
+          500 13px "Inter",
+          sans-serif;
+        color: var(--orange);
+      }
+      .linger-arrow {
+        font-size: 16px;
+        animation: arrowBounce 1.5s ease-in-out infinite;
+      }
+      @keyframes nudgePulse {
+        0%,
+        100% {
+          opacity: 0.8;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes arrowBounce {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(6px);
+        }
+      }
+
+      /* ═══ Bottom Controls ═══ */
+      .bottom-controls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        z-index: 20;
+        padding-bottom: 16px;
+      }
+      .ctrl-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+      }
+      .ctrl-stop {
+        background: var(--red);
+        color: #fff;
+        width: 56px;
+        height: 56px;
+      }
+      .ctrl-secondary {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+
+      /* ═══ Annotation Callouts ═══ */
+      .callout {
+        position: absolute;
+        z-index: 30;
+        background: rgba(16, 185, 129, 0.12);
+        border: 1px solid rgba(16, 185, 129, 0.4);
+        border-radius: 8px;
+        padding: 6px 10px;
+        font:
+          500 10px/1.4 "Inter",
+          sans-serif;
+        color: var(--accent);
+        pointer-events: none;
+        max-width: 140px;
+      }
+      .callout::before {
+        content: "";
+        position: absolute;
+        width: 0;
+        height: 0;
+      }
+      /* Arrow pointing left */
+      .callout.arrow-left::before {
+        left: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-right: 6px solid rgba(16, 185, 129, 0.4);
+      }
+      /* Arrow pointing right */
+      .callout.arrow-right::before {
+        right: -6px;
+        top: 50%;
+        transform: translateY(-50%);
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-left: 6px solid rgba(16, 185, 129, 0.4);
+      }
+      /* Arrow pointing down */
+      .callout.arrow-down::before {
+        bottom: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid rgba(16, 185, 129, 0.4);
+      }
+
+      /* ═══ Details section ═══ */
+      .details {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 0 20px 60px;
+      }
+      .detail-card {
+        background: var(--surface);
+        border: 1px solid #333;
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+      .detail-card h4 {
+        font:
+          700 14px "Inter",
+          sans-serif;
+        color: var(--accent);
+        margin-bottom: 10px;
+      }
+      .detail-card p,
+      .detail-card li {
+        font:
+          400 13px/1.7 "Inter",
+          sans-serif;
+        color: var(--text-dim);
+      }
+      .detail-card ul {
+        list-style: none;
+        padding: 0;
+      }
+      .detail-card li {
+        padding-left: 18px;
+        position: relative;
+      }
+      .detail-card li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+      }
+
+      .section-title {
+        font:
+          800 18px "Inter",
+          sans-serif;
+        margin: 32px 0 16px;
+        text-align: center;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Spotter Mode + Sparkle Scan</h1>
+    <p class="subtitle">
+      Clean camera feed · AI scanning particles · Toast acknowledgments
+    </p>
+
+    <!-- ═══ Phone Wireframes ═══ -->
+    <div class="phone-row">
+      <!-- ── Screen 1: Actively Scanning ── -->
+      <div class="phone-col">
+        <h3>1 · Scanning — Sparkles Active</h3>
+        <div class="phone" id="phone1">
+          <div class="camera-feed">
+            <div class="furniture sofa"></div>
+            <div class="furniture table"></div>
+            <div class="furniture lamp"></div>
+            <div class="furniture tv"></div>
+            <div class="furniture plant"></div>
+            <div class="furniture shelf"></div>
+            <div class="furniture rug"></div>
+          </div>
+
+          <!-- Scan sweep line -->
+          <div class="scan-sweep"></div>
+
+          <!-- Corner brackets -->
+          <div class="scan-corners"><div class="c1"></div></div>
+
+          <!-- Sparkle particles (CSS-animated, positioned across the frame) -->
+          <div class="sparkle-layer" id="sparkles1"></div>
+
+          <div class="status-bar">
+            <span class="time">9:41</span>
+            <span class="icons">📶 🔋</span>
+          </div>
+
+          <div class="spotter-hud">
+            <div class="tally-pill">📦 <span class="count">7</span> items</div>
+            <div class="fps-pill">⚡ 58ms</div>
+            <div class="timer-pill">0:23</div>
+          </div>
+
+          <div class="scanning-badge">
+            <div class="scan-dot"></div>
+            <span>SCANNING</span>
+          </div>
+
+          <div class="toast-stack">
+            <div class="toast-card fading">
+              <span class="toast-check">✓</span>
+              <span class="toast-label">Sofa</span>
+              <span class="toast-time">3s ago</span>
+            </div>
+            <div class="toast-card fading" style="opacity: 0.6">
+              <span class="toast-check">✓</span>
+              <span class="toast-label">Coffee Table</span>
+              <span class="toast-time">2s ago</span>
+            </div>
+            <div class="toast-card fresh">
+              <span class="toast-check">✓</span>
+              <span class="toast-label">Floor Lamp</span>
+              <span class="toast-time">now</span>
+            </div>
+          </div>
+
+          <div class="bottom-controls">
+            <button class="ctrl-btn ctrl-secondary">⏸</button>
+            <button class="ctrl-btn ctrl-stop">■</button>
+            <button class="ctrl-btn ctrl-secondary">🔦</button>
+          </div>
+        </div>
+        <p class="desc">
+          Sparkles float across the camera feed — small stars and glows that
+          give the sense the AI is actively analyzing the scene. A subtle sweep
+          line pulses top-to-bottom.
+        </p>
+      </div>
+
+      <!-- ── Screen 2: Linger / Settled ── -->
+      <div class="phone-col">
+        <h3>2 · Lingering — Sparkles Calm</h3>
+        <div class="phone" id="phone2">
+          <div class="camera-feed">
+            <div class="furniture sofa"></div>
+            <div class="furniture table"></div>
+            <div class="furniture lamp"></div>
+            <div class="furniture tv"></div>
+            <div class="furniture plant"></div>
+            <div class="furniture shelf"></div>
+            <div class="furniture rug"></div>
+          </div>
+
+          <!-- Slower/fewer sparkles when lingering -->
+          <div class="sparkle-layer" id="sparkles2"></div>
+
+          <div class="scan-corners" style="opacity: 0.12">
+            <div class="c1"></div>
+          </div>
+
+          <div class="status-bar">
+            <span class="time">9:41</span>
+            <span class="icons">📶 🔋</span>
+          </div>
+
+          <div class="spotter-hud">
+            <div class="tally-pill">📦 <span class="count">7</span> items</div>
+            <div class="fps-pill">⚡ 58ms</div>
+            <div class="timer-pill">0:31</div>
+          </div>
+
+          <div class="scanning-badge">
+            <div class="scan-dot" style="animation-duration: 3s"></div>
+            <span style="opacity: 0.6">IDLE</span>
+          </div>
+
+          <div class="linger-nudge">
+            <span class="linger-text">Got it — move to next area</span>
+            <span class="linger-arrow">→</span>
+          </div>
+
+          <div class="bottom-controls">
+            <button class="ctrl-btn ctrl-secondary">⏸</button>
+            <button class="ctrl-btn ctrl-stop">■</button>
+            <button class="ctrl-btn ctrl-secondary">🔦</button>
+          </div>
+        </div>
+        <p class="desc">
+          When the scene is unchanged (camera stationary), sparkles slow down
+          and thin out. The "SCANNING" badge fades to "IDLE" and the move-on
+          nudge appears.
+        </p>
+      </div>
+
+      <!-- ── Screen 3: New Area ── -->
+      <div class="phone-col">
+        <h3>3 · New Area — Sparkles Burst</h3>
+        <div class="phone" id="phone3">
+          <div class="camera-feed scene2">
+            <div
+              class="furniture"
+              style="
+                left: 40px;
+                top: 250px;
+                width: 120px;
+                height: 110px;
+                background: #3a2a1a;
+                border-radius: 4px;
+              "
+            ></div>
+            <div
+              class="furniture"
+              style="
+                left: 180px;
+                top: 200px;
+                width: 80px;
+                height: 140px;
+                background: #2a3a2a;
+                border-radius: 4px;
+              "
+            ></div>
+            <div
+              class="furniture"
+              style="
+                right: 30px;
+                top: 350px;
+                width: 60px;
+                height: 40px;
+                background: #4a3a2a;
+                border-radius: 8px;
+              "
+            ></div>
+            <div
+              class="furniture"
+              style="
+                left: 60px;
+                top: 150px;
+                width: 50px;
+                height: 50px;
+                background: #5a4a3a;
+                border-radius: 50%;
+              "
+            ></div>
+          </div>
+
+          <div class="scan-sweep"></div>
+          <div class="scan-corners"><div class="c1"></div></div>
+          <div class="sparkle-layer" id="sparkles3"></div>
+
+          <div class="status-bar">
+            <span class="time">9:41</span>
+            <span class="icons">📶 🔋</span>
+          </div>
+
+          <div class="spotter-hud">
+            <div class="tally-pill">📦 <span class="count">11</span> items</div>
+            <div class="fps-pill">⚡ 55ms</div>
+            <div class="timer-pill">0:38</div>
+          </div>
+
+          <div class="scanning-badge">
+            <div class="scan-dot"></div>
+            <span>SCANNING</span>
+          </div>
+
+          <div class="toast-stack">
+            <div class="toast-card fading" style="opacity: 0.5">
+              <span class="toast-check">✓</span>
+              <span class="toast-label">Bookshelf</span>
+              <span class="toast-time">2s ago</span>
+            </div>
+            <div class="toast-card fresh">
+              <span class="toast-check">✓</span>
+              <span class="toast-label">Desk</span>
+              <span class="toast-time">now</span>
+            </div>
+            <div class="toast-card fresh" style="animation-delay: 0.15s">
+              <span class="toast-check">✓</span>
+              <span class="toast-label">Office Chair</span>
+              <span class="toast-time">now</span>
+            </div>
+          </div>
+
+          <div class="bottom-controls">
+            <button class="ctrl-btn ctrl-secondary">⏸</button>
+            <button class="ctrl-btn ctrl-stop">■</button>
+            <button class="ctrl-btn ctrl-secondary">🔦</button>
+          </div>
+        </div>
+        <p class="desc">
+          When camera moves to a new area, sparkles burst with higher density.
+          New object toasts slide in. The scanning line restarts its sweep.
+        </p>
+      </div>
+    </div>
+
+    <!-- ═══ Sparkle System Details ═══ -->
+    <div class="section-title">Sparkle System Breakdown</div>
+    <div class="details">
+      <div class="detail-card">
+        <h4>Three Particle Types</h4>
+        <ul>
+          <li>
+            <strong>Star (4-point cross)</strong> — white/green, 3-5px, rotates
+            slightly as it fades. Primary particle.
+          </li>
+          <li>
+            <strong>Diagonal star</strong> — rotated 45°, smaller, adds variety
+            so it doesn't feel repetitive.
+          </li>
+          <li>
+            <strong>Soft glow dot</strong> — radial gradient, 6px, blurred.
+            Ambient filler between stars.
+          </li>
+        </ul>
+      </div>
+
+      <div class="detail-card">
+        <h4>Adaptive Density (3 States)</h4>
+        <ul>
+          <li>
+            <strong>Active scanning</strong> — 15-20 particles visible at once.
+            New ones spawn every 150-250ms. Sweep line active.
+          </li>
+          <li>
+            <strong>Lingering / idle</strong> — 3-5 particles, spawn every
+            600-800ms. Sweep line stops. Communicates "I'm done here."
+          </li>
+          <li>
+            <strong>New area burst</strong> — 25-30 particles in a 0.5s burst,
+            then settles to active rate. Feels like the AI "woke up."
+          </li>
+        </ul>
+      </div>
+
+      <div class="detail-card">
+        <h4>Performance Cost</h4>
+        <ul>
+          <li>Pure CSS animations — zero canvas work, zero JS per frame.</li>
+          <li>
+            Each particle is a tiny DOM element with a CSS animation +
+            opacity/transform.
+          </li>
+          <li>
+            GPU-composited (opacity + transform only) — no layout or paint
+            thrashing.
+          </li>
+          <li>
+            Spawn/despawn via JS setInterval — particles self-remove after
+            animation ends.
+          </li>
+          <li>Total overhead: &lt;1ms/frame on any device. Negligible.</li>
+        </ul>
+      </div>
+
+      <div class="detail-card">
+        <h4>Why This Works</h4>
+        <ul>
+          <li>
+            <strong>Fills the "empty camera" gap</strong> — without sparkles,
+            Spotter Mode looks like a plain camera app. Users wonder "is it
+            doing anything?"
+          </li>
+          <li>
+            <strong>Google Lens precedent</strong> — users already associate
+            this particle style with "AI is analyzing."
+          </li>
+          <li>
+            <strong>Adaptive density = status communication</strong> — busy
+            sparkles = "I'm finding things." Calm = "I'm done, move on." No text
+            needed.
+          </li>
+          <li>
+            <strong>Zero inference overhead</strong> — purely cosmetic CSS.
+            Doesn't touch the detection pipeline at all.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Spawn animated sparkle particles inside a container
+      function spawnSparkles(containerId, opts) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const { count, interval, types, areaW, areaH } = opts;
+        const animations = [
+          "sparkle1",
+          "sparkle2",
+          "sparkle3",
+          "sparkleFloat",
+          "sparklePop",
+        ];
+        let spawned = 0;
+
+        function spawn() {
+          if (spawned >= count * 3) return; // loop limit
+          const type = types[Math.floor(Math.random() * types.length)];
+          const anim =
+            animations[Math.floor(Math.random() * animations.length)];
+          const el = document.createElement("div");
+          el.className = "sparkle " + type;
+          el.style.left = 20 + Math.random() * (areaW - 40) + "px";
+          el.style.top = 60 + Math.random() * (areaH - 140) + "px";
+          const dur = 1 + Math.random() * 1.5; // 1-2.5s
+          el.style.animation = `${anim} ${dur}s ease-out forwards`;
+          el.style.animationDelay = Math.random() * 0.3 + "s";
+          container.appendChild(el);
+          spawned++;
+          el.addEventListener("animationend", () => {
+            el.remove();
+            spawned--;
+          });
+        }
+
+        // Initial burst
+        for (let i = 0; i < Math.min(count, 14); i++) {
+          setTimeout(spawn, i * 60);
+        }
+        // Continuous spawn
+        setInterval(spawn, interval);
+      }
+
+      // Phone 1: Active scanning — busy sparkles
+      spawnSparkles("sparkles1", {
+        count: 30,
+        interval: 140,
+        types: ["star", "star", "star-diag", "glow", "star", "star"],
+        areaW: 320,
+        areaH: 640,
+      });
+
+      // Phone 2: Lingering — sparse/slow
+      spawnSparkles("sparkles2", {
+        count: 8,
+        interval: 500,
+        types: ["glow", "star-diag", "glow", "star"],
+        areaW: 320,
+        areaH: 640,
+      });
+
+      // Phone 3: New area burst — dense
+      spawnSparkles("sparkles3", {
+        count: 40,
+        interval: 110,
+        types: ["star", "star", "star-diag", "star", "glow", "star", "star"],
+        areaW: 320,
+        areaH: 640,
+      });
+    </script>
+  </body>
+</html>

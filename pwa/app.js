@@ -243,7 +243,10 @@ async function startScan() {
     showScreen('scan');
     scanning = true;
     startTime = Date.now();
-    if (renderMode === 'smooth') {
+
+    if (renderMode === 'spotter') {
+        startSpotterMode();
+    } else if (renderMode === 'smooth') {
         startOverlaySync();
     }
 
@@ -291,6 +294,16 @@ function togglePause() {
 let lastDetection = null;
 let prevDetection = null;  // previous detection for velocity estimation
 let renderMode = 'smooth';
+
+// ── Spotter Mode State ─────────────────────────────────────────────────────
+let _spotterSparkleTimer = null;
+let _spotterSparkleAlive = 0;
+let _spotterToastShown = new Set();  // labels already shown as toasts
+let _spotterToastEls = [];           // active toast DOM elements
+let _spotterLingerTimer = null;
+let _spotterLastNewLabel = 0;        // timestamp of last new label detection
+const SPOTTER_LINGER_MS = 4000;      // show nudge after 4s no new labels
+const SPOTTER_MAX_TOASTS = 4;
 
 function startOverlaySync() {
     // Only used in "smooth" mode — 30fps render loop for box overlay
@@ -517,6 +530,7 @@ function sendFrame() {
     const frameId = wsFrameId++;
 
     // In synced mode, store the full-res frame for later rendering
+    // Spotter mode skips frame store entirely (like smooth)
     if (renderMode === 'synced') {
         frameStore.set(frameId, captureCtx.getImageData(0, 0, vw, vh));
         // Keep only last 10 frames to limit memory
@@ -547,7 +561,7 @@ function sendFrame() {
     }
 
     const task = document.getElementById('h-task').value;
-    const segmentor = document.getElementById('h-segmentor').value;
+    const segmentor = renderMode === 'spotter' ? 'none' : document.getElementById('h-segmentor').value;
     ws.send(JSON.stringify({ frame_id: frameId, image: base64, task, segmentor }));
 }
 
@@ -579,7 +593,11 @@ function handleDetectionResult(data) {
     const segmentor = document.getElementById('h-segmentor').value;
     const segActive = segmentor && segmentor !== 'none';
 
-    if (renderMode === 'synced') {
+    if (renderMode === 'spotter') {
+        // Spotter mode: no canvas drawing at all
+        prevDetection = lastDetection;
+        lastDetection = { bboxes, labels, timestamp: Date.now() };
+    } else if (renderMode === 'synced') {
         // Store detection info for masks overlay
         lastDetection = {
             bboxes, labels, masks: null, velocity,
@@ -638,7 +656,11 @@ function handleDetectionResult(data) {
     }
 
     detectedLabels = updateTemporalFilter(labels);
-    updateTicker();
+    if (renderMode === 'spotter') {
+        updateSpotterToasts();
+    } else {
+        updateTicker();
+    }
     document.getElementById('s-detecting').textContent = `${detectedLabels.size} items`;
 }
 
@@ -798,6 +820,182 @@ function resetBubbles() {
     if (container) container.innerHTML = '';
 }
 
+// ── Spotter Mode ───────────────────────────────────────────────────────────
+
+function startSpotterMode() {
+    // Hide canvas so native video shows through
+    canvas.style.display = 'none';
+    // Hide the old scan line (spotter has its own sweep)
+    const scanline = document.getElementById('s-scanline');
+    if (scanline) scanline.classList.remove('active');
+    // Hide bubbles (spotter uses toasts)
+    const bubbles = document.getElementById('s-bubbles');
+    if (bubbles) bubbles.style.display = 'none';
+
+    // Activate spotter UI
+    document.getElementById('s-spotter-sweep').classList.add('active');
+    document.getElementById('s-spotter-corners').classList.add('active');
+    document.getElementById('s-spotter-sparkles').classList.add('active');
+    document.getElementById('s-spotter-badge').classList.add('active');
+    document.getElementById('s-spotter-toasts').classList.add('active');
+
+    // Reset state
+    _spotterToastShown.clear();
+    _spotterToastEls = [];
+    _spotterLastNewLabel = Date.now();
+    _spotterSparkleAlive = 0;
+
+    // Start sparkle spawner — active rate: 3-5 particles, spawn every 500ms
+    _spotterSparkleTimer = setInterval(() => spotterSpawnSparkle(), 500);
+    // Initial burst of 3
+    for (let i = 0; i < 3; i++) setTimeout(() => spotterSpawnSparkle(), i * 200);
+    // Start linger timer
+    _spotterLingerTimer = setTimeout(spotterShowLinger, SPOTTER_LINGER_MS);
+}
+
+function stopSpotterMode() {
+    if (_spotterSparkleTimer) { clearInterval(_spotterSparkleTimer); _spotterSparkleTimer = null; }
+    if (_spotterLingerTimer) { clearTimeout(_spotterLingerTimer); _spotterLingerTimer = null; }
+
+    // Restore canvas
+    canvas.style.display = '';
+    const bubbles = document.getElementById('s-bubbles');
+    if (bubbles) bubbles.style.display = '';
+
+    // Deactivate spotter UI
+    ['s-spotter-sweep', 's-spotter-corners', 's-spotter-sparkles',
+     's-spotter-badge', 's-spotter-toasts'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+    document.getElementById('s-spotter-linger').classList.remove('active');
+
+    // Clear sparkles and toasts
+    const sparkles = document.getElementById('s-spotter-sparkles');
+    if (sparkles) sparkles.innerHTML = '';
+    const toasts = document.getElementById('s-spotter-toasts');
+    if (toasts) toasts.innerHTML = '';
+
+    _spotterSparkleAlive = 0;
+    _spotterToastShown.clear();
+    _spotterToastEls = [];
+}
+
+function spotterSpawnSparkle() {
+    const container = document.getElementById('s-spotter-sparkles');
+    if (!container || !scanning) return;
+    // Cap at 5 alive particles
+    if (_spotterSparkleAlive >= 5) return;
+
+    const el = document.createElement('div');
+    el.className = 'spotter-spark';
+    // Random position within the scan area
+    const w = container.offsetWidth || 320;
+    const h = container.offsetHeight || 480;
+    el.style.left = (30 + Math.random() * (w - 60)) + 'px';
+    el.style.top = (60 + Math.random() * (h - 120)) + 'px';
+    const anim = Math.random() > 0.5 ? 'sparkFade' : 'sparkDrift';
+    const dur = 1.2 + Math.random() * 1.3;
+    el.style.animation = `${anim} ${dur}s ease-out forwards`;
+    el.style.animationDelay = (Math.random() * 0.3) + 's';
+    container.appendChild(el);
+    _spotterSparkleAlive++;
+    el.addEventListener('animationend', () => { el.remove(); _spotterSparkleAlive--; });
+}
+
+function spotterBurstSparkles() {
+    // Brief burst of 6-8 sparkles over ~1s when entering new area
+    let count = 0;
+    const burst = setInterval(() => {
+        if (count >= 6 || !scanning) { clearInterval(burst); return; }
+        spotterSpawnSparkle();
+        count++;
+    }, 150);
+}
+
+function updateSpotterToasts() {
+    let newFound = false;
+    for (const label of detectedLabels) {
+        if (!_spotterToastShown.has(label)) {
+            _spotterToastShown.add(label);
+            spotterAddToast(label);
+            newFound = true;
+        }
+    }
+
+    if (newFound) {
+        _spotterLastNewLabel = Date.now();
+        // New labels → burst sparkles
+        spotterBurstSparkles();
+        // Hide linger nudge
+        document.getElementById('s-spotter-linger').classList.remove('active');
+        // Reset linger timer
+        if (_spotterLingerTimer) clearTimeout(_spotterLingerTimer);
+        _spotterLingerTimer = setTimeout(spotterShowLinger, SPOTTER_LINGER_MS);
+
+        // Update badge to SCANNING
+        const badge = document.getElementById('s-spotter-badge');
+        if (badge) {
+            const dot = badge.querySelector('.spotter-scan-dot');
+            const span = badge.querySelector('span');
+            if (dot) dot.style.animationDuration = '1.5s';
+            if (span) { span.textContent = 'SCANNING'; span.style.opacity = '1'; }
+        }
+        // Restore sweep line
+        document.getElementById('s-spotter-sweep').classList.add('active');
+    }
+
+    document.getElementById('s-detecting').textContent = `${detectedLabels.size} items`;
+}
+
+function spotterAddToast(label) {
+    const container = document.getElementById('s-spotter-toasts');
+    if (!container) return;
+
+    const el = document.createElement('div');
+    el.className = 'spotter-toast fresh';
+    el.innerHTML = `<span class="spotter-toast-check">\u2713</span>` +
+        `<span class="spotter-toast-label">${label}</span>` +
+        `<span class="spotter-toast-time">now</span>`;
+    container.appendChild(el);
+    _spotterToastEls.push({ el, time: Date.now(), label });
+
+    // Fade previous toasts
+    for (let i = 0; i < _spotterToastEls.length - 1; i++) {
+        const t = _spotterToastEls[i];
+        t.el.classList.remove('fresh');
+        const ago = Math.round((Date.now() - t.time) / 1000);
+        const timeSpan = t.el.querySelector('.spotter-toast-time');
+        if (timeSpan) timeSpan.textContent = `${ago}s ago`;
+    }
+
+    // Remove old toasts beyond max
+    while (_spotterToastEls.length > SPOTTER_MAX_TOASTS) {
+        const old = _spotterToastEls.shift();
+        old.el.classList.add('fading');
+        setTimeout(() => old.el.remove(), 800);
+    }
+
+    // Auto-fade "fresh" after 1.5s
+    setTimeout(() => el.classList.remove('fresh'), 1500);
+}
+
+function spotterShowLinger() {
+    if (!scanning || renderMode !== 'spotter') return;
+    document.getElementById('s-spotter-linger').classList.add('active');
+
+    // Slow down sparkles and sweep
+    const badge = document.getElementById('s-spotter-badge');
+    if (badge) {
+        const dot = badge.querySelector('.spotter-scan-dot');
+        const span = badge.querySelector('span');
+        if (dot) dot.style.animationDuration = '3s';
+        if (span) { span.textContent = 'IDLE'; span.style.opacity = '0.5'; }
+    }
+    // Stop sweep line during idle
+    document.getElementById('s-spotter-sweep').classList.remove('active');
+}
+
 // ── Finish Scan ────────────────────────────────────────────────────────────
 function finishScan() {
     scanning = false;
@@ -810,6 +1008,7 @@ function finishScan() {
     if (scanline) scanline.classList.remove('active');
     lastDetection = null;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    stopSpotterMode();
 
     // Disconnect WebSocket
     disconnectWebSocket();
@@ -862,6 +1061,7 @@ function stopScan() {
     scanning = false;
     paused = false;
     clearInterval(timerInterval);
+    stopSpotterMode();
     disconnectWebSocket();
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();

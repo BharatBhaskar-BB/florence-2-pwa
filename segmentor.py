@@ -1,6 +1,6 @@
 """
 Lightweight SAM wrappers for bbox-prompted segmentation.
-Supports MobileSAM and EfficientViT-SAM with lazy loading.
+Supports MobileSAM and SAM 2 Tiny with lazy loading.
 
 Optimizations:
 - Batched box prediction (one predict call for all bboxes)
@@ -32,8 +32,8 @@ def available_segmentors() -> list[str]:
     except ImportError:
         pass
     try:
-        from efficientvit.sam_model_zoo import create_sam_model  # noqa: F401
-        avail.append("efficientvit-sam")
+        from sam2.sam2_image_predictor import SAM2ImagePredictor  # noqa: F401
+        avail.append("sam2-tiny")
     except ImportError:
         pass
     return avail
@@ -70,17 +70,13 @@ def _load_mobilesam(device: torch.device):
     return SamPredictor(sam)
 
 
-def _load_efficientvit_sam(device: torch.device):
-    """Load EfficientViT-SAM-L0 predictor."""
-    from efficientvit.sam_model_zoo import create_sam_model
-    from efficientvit.models.efficientvit.sam import EfficientViTSamPredictor
+def _load_sam2_tiny(device: torch.device):
+    """Load SAM 2.1 Hiera-Tiny predictor via HuggingFace."""
+    from sam2.sam2_image_predictor import SAM2ImagePredictor
 
-    ckpt = _download_weights(
-        "han-cai/efficientvit-sam", "l0.pt", "efficientvit_sam_l0.pt"
-    )
-    sam = create_sam_model(name="l0", weight_url=ckpt)
-    sam.to(device).eval()
-    return EfficientViTSamPredictor(sam)
+    pred = SAM2ImagePredictor.from_pretrained("facebook/sam2.1-hiera-tiny")
+    pred.model.to(device).float().eval()
+    return pred
 
 
 def get_predictor(name: str, device: torch.device):
@@ -91,8 +87,8 @@ def get_predictor(name: str, device: torch.device):
     t0 = time.time()
     if name == "mobilesam":
         pred = _load_mobilesam(device)
-    elif name == "efficientvit-sam":
-        pred = _load_efficientvit_sam(device)
+    elif name == "sam2-tiny":
+        pred = _load_sam2_tiny(device)
     else:
         raise ValueError(f"Unknown segmentor: {name}")
 

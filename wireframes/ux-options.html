@@ -1,0 +1,1701 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>BundleBox — UX Strategy Wireframes</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --bg: #0a0a0a;
+        --surface: #1a1a1a;
+        --surface2: #2a2a2a;
+        --accent: #10b981;
+        --accent-glow: rgba(16, 185, 129, 0.25);
+        --red: #ef4444;
+        --blue: #3b82f6;
+        --orange: #f59e0b;
+        --text: #f9fafb;
+        --text-dim: #9ca3af;
+        --text-light: #6b7280;
+        --radius: 16px;
+        --radius-sm: 10px;
+      }
+
+      html,
+      body {
+        height: 100%;
+        font-family: "Inter", system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        overflow-x: hidden;
+      }
+
+      /* ═══ Tab Switcher ═══ */
+      .tab-bar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        display: flex;
+        background: rgba(10, 10, 10, 0.92);
+        backdrop-filter: blur(20px);
+        border-bottom: 1px solid #333;
+        padding: 12px 16px 8px;
+      }
+      .tab-bar button {
+        flex: 1;
+        padding: 10px 8px;
+        border: none;
+        background: transparent;
+        color: var(--text-dim);
+        font:
+          600 13px/1 "Inter",
+          sans-serif;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .tab-bar button.active {
+        background: var(--accent);
+        color: #fff;
+      }
+      .tab-bar button:not(.active):hover {
+        background: var(--surface2);
+      }
+
+      .tab-content {
+        display: none;
+        padding-top: 60px;
+      }
+      .tab-content.active {
+        display: block;
+      }
+
+      /* ═══ Shared: Phone Frame ═══ */
+      .phone-row {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 32px;
+        padding: 24px 16px;
+      }
+      .phone-col {
+        text-align: center;
+      }
+      .phone-col h3 {
+        color: var(--text-dim);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        margin-bottom: 12px;
+      }
+
+      .phone {
+        width: 320px;
+        height: 640px;
+        border-radius: 36px;
+        border: 3px solid #444;
+        background: #000;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+      }
+
+      /* Fake camera feed */
+      .camera-feed {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at 30% 60%, #2d1f0f 0%, transparent 50%),
+          radial-gradient(ellipse at 70% 30%, #1a2a1a 0%, transparent 50%),
+          linear-gradient(
+            135deg,
+            #1a1a2e 0%,
+            #16213e 30%,
+            #0f3460 60%,
+            #1a1a2e 100%
+          );
+      }
+
+      /* Room furniture silhouettes */
+      .furniture {
+        position: absolute;
+        border-radius: 6px;
+        opacity: 0.15;
+      }
+      .furniture.sofa {
+        left: 20px;
+        top: 280px;
+        width: 140px;
+        height: 60px;
+        background: #8b7355;
+        border-radius: 8px 8px 4px 4px;
+      }
+      .furniture.table {
+        left: 100px;
+        top: 360px;
+        width: 100px;
+        height: 50px;
+        background: #5c4033;
+      }
+      .furniture.lamp {
+        right: 40px;
+        top: 200px;
+        width: 30px;
+        height: 80px;
+        background: #d4a574;
+        border-radius: 15px 15px 4px 4px;
+      }
+      .furniture.chair {
+        right: 60px;
+        top: 380px;
+        width: 50px;
+        height: 55px;
+        background: #6b5b4a;
+        border-radius: 4px;
+      }
+      .furniture.tv {
+        left: 80px;
+        top: 140px;
+        width: 160px;
+        height: 90px;
+        background: #2a2a3a;
+        border-radius: 4px;
+        border: 1px solid #444;
+      }
+      .furniture.plant {
+        left: 30px;
+        top: 180px;
+        width: 35px;
+        height: 60px;
+        background: #2d5a27;
+        border-radius: 50% 50% 4px 4px;
+      }
+      .furniture.shelf {
+        right: 20px;
+        top: 120px;
+        width: 70px;
+        height: 100px;
+        background: #5c4033;
+      }
+      .furniture.rug {
+        left: 60px;
+        top: 420px;
+        width: 200px;
+        height: 70px;
+        background: #8b4513;
+        border-radius: 50%;
+        opacity: 0.1;
+      }
+
+      /* Status bar */
+      .status-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        z-index: 10;
+        background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+      }
+      .status-bar .time {
+        font:
+          600 14px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .status-bar .icons {
+        display: flex;
+        gap: 5px;
+        font-size: 12px;
+        color: #fff;
+      }
+
+      /* ═══════════════════════════════════
+       OPTION A — SPOTTER MODE (Toasts)
+       ═══════════════════════════════════ */
+
+      /* Top HUD */
+      .spotter-hud {
+        position: absolute;
+        top: 50px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 10;
+      }
+      .tally-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font:
+          700 14px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .tally-pill .count {
+        color: var(--accent);
+      }
+      .timer-pill {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 6px 14px;
+        border-radius: 20px;
+        font:
+          600 13px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .fps-pill {
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 4px 10px;
+        border-radius: 12px;
+        font:
+          500 11px "Inter",
+          sans-serif;
+        color: var(--accent);
+      }
+
+      /* Toast cards */
+      .toast-stack {
+        position: absolute;
+        bottom: 100px;
+        right: 12px;
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 6px;
+        z-index: 10;
+        pointer-events: none;
+      }
+      .toast-card {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        padding: 8px 14px;
+        border-radius: 12px;
+        animation: toastIn 0.3s ease-out;
+        white-space: nowrap;
+      }
+      .toast-card.fading {
+        opacity: 0.4;
+        transform: translateX(10px);
+        transition: all 0.5s;
+      }
+      .toast-check {
+        color: var(--accent);
+        font-size: 14px;
+      }
+      .toast-label {
+        font:
+          600 13px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .toast-time {
+        font:
+          400 10px "Inter",
+          sans-serif;
+        color: var(--text-light);
+        margin-left: 4px;
+      }
+
+      @keyframes toastIn {
+        from {
+          transform: translateX(40px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      /* Linger nudge */
+      .linger-nudge {
+        position: absolute;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(15px);
+        border: 1px solid rgba(245, 158, 11, 0.4);
+        padding: 10px 20px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 10;
+        animation: nudgePulse 2s ease-in-out infinite;
+      }
+      .linger-text {
+        font:
+          500 13px "Inter",
+          sans-serif;
+        color: var(--orange);
+      }
+      .linger-arrow {
+        font-size: 16px;
+        animation: arrowBounce 1.5s ease-in-out infinite;
+      }
+
+      @keyframes nudgePulse {
+        0%,
+        100% {
+          opacity: 0.8;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      @keyframes arrowBounce {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(6px);
+        }
+      }
+
+      /* Bottom controls */
+      .bottom-controls {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+        z-index: 10;
+        padding-bottom: 16px;
+      }
+      .ctrl-btn {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        font-size: 18px;
+        cursor: pointer;
+      }
+      .ctrl-stop {
+        background: var(--red);
+        color: #fff;
+        width: 56px;
+        height: 56px;
+      }
+      .ctrl-secondary {
+        background: rgba(255, 255, 255, 0.15);
+        color: #fff;
+      }
+
+      /* ═══════════════════════════════════
+       OPTION B — PULSE PIN MODE
+       ═══════════════════════════════════ */
+
+      /* Pins */
+      .pulse-pin {
+        position: absolute;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .pin-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        position: relative;
+      }
+      .pin-dot::after {
+        content: "";
+        position: absolute;
+        inset: -6px;
+        border-radius: 50%;
+        border: 2px solid;
+        animation: pinPulse 2s ease-out infinite;
+        opacity: 0;
+      }
+      .pin-dot.new::after {
+        animation: pinPulseActive 1s ease-out 2;
+      }
+      .pin-label {
+        margin-top: 4px;
+        font:
+          600 10px "Inter",
+          sans-serif;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 2px 8px;
+        border-radius: 6px;
+        white-space: nowrap;
+        backdrop-filter: blur(5px);
+      }
+      .pin-label.faded {
+        opacity: 0.35;
+      }
+      .pin-label.bright {
+        opacity: 1;
+      }
+
+      .pin-green .pin-dot {
+        background: var(--accent);
+      }
+      .pin-green .pin-dot::after {
+        border-color: var(--accent);
+      }
+      .pin-blue .pin-dot {
+        background: var(--blue);
+      }
+      .pin-blue .pin-dot::after {
+        border-color: var(--blue);
+      }
+      .pin-orange .pin-dot {
+        background: var(--orange);
+      }
+      .pin-orange .pin-dot::after {
+        border-color: var(--orange);
+      }
+      .pin-red .pin-dot {
+        background: var(--red);
+      }
+      .pin-red .pin-dot::after {
+        border-color: var(--red);
+      }
+
+      @keyframes pinPulse {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.6;
+        }
+        100% {
+          transform: scale(2);
+          opacity: 0;
+        }
+      }
+      @keyframes pinPulseActive {
+        0% {
+          transform: scale(0.8);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(2.5);
+          opacity: 0;
+        }
+      }
+
+      /* Subtle bbox ghost (Option B only) */
+      .ghost-bbox {
+        position: absolute;
+        border: 1px dashed rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      /* Pin legend badge */
+      .pin-legend {
+        position: absolute;
+        top: 50px;
+        left: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        z-index: 10;
+      }
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font:
+          400 10px "Inter",
+          sans-serif;
+        color: var(--text-dim);
+      }
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+      }
+
+      /* ═══════════════════════════════════
+       COMPARISON PAGE
+       ═══════════════════════════════════ */
+      .comparison {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 24px 20px 60px;
+      }
+      .comparison h2 {
+        font:
+          800 22px "Inter",
+          sans-serif;
+        margin-bottom: 6px;
+      }
+      .comparison .sub {
+        font:
+          400 14px "Inter",
+          sans-serif;
+        color: var(--text-dim);
+        margin-bottom: 24px;
+      }
+
+      .rec-banner {
+        background: linear-gradient(
+          135deg,
+          rgba(16, 185, 129, 0.15),
+          rgba(16, 185, 129, 0.05)
+        );
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 16px;
+        padding: 20px;
+        margin-bottom: 28px;
+      }
+      .rec-banner h3 {
+        font:
+          700 16px "Inter",
+          sans-serif;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .rec-banner p {
+        font:
+          400 13px/1.6 "Inter",
+          sans-serif;
+        color: var(--text-dim);
+      }
+
+      .compare-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      @media (max-width: 600px) {
+        .compare-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .compare-card {
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 18px;
+        border: 1px solid #333;
+      }
+      .compare-card.recommended {
+        border-color: var(--accent);
+        box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+      }
+      .compare-card h4 {
+        font:
+          700 15px "Inter",
+          sans-serif;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .compare-card h4 .badge {
+        font:
+          600 9px "Inter",
+          sans-serif;
+        color: var(--accent);
+        background: rgba(16, 185, 129, 0.15);
+        padding: 3px 8px;
+        border-radius: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #2a2a2a;
+        font:
+          400 12px "Inter",
+          sans-serif;
+      }
+      .metric-row:last-child {
+        border-bottom: none;
+      }
+      .metric-label {
+        color: var(--text-dim);
+      }
+      .metric-val {
+        font-weight: 600;
+        color: var(--text);
+      }
+      .metric-val.good {
+        color: var(--accent);
+      }
+      .metric-val.mid {
+        color: var(--orange);
+      }
+      .metric-val.bad {
+        color: var(--red);
+      }
+
+      .pros-cons {
+        margin-top: 14px;
+      }
+      .pros-cons h5 {
+        font:
+          600 11px "Inter",
+          sans-serif;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        margin-bottom: 6px;
+      }
+      .pros-cons li {
+        font:
+          400 12px/1.5 "Inter",
+          sans-serif;
+        color: var(--text-dim);
+        list-style: none;
+        padding-left: 16px;
+        position: relative;
+      }
+      .pros-cons li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 7px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+      }
+      .pros-cons .pro li::before {
+        background: var(--accent);
+      }
+      .pros-cons .con li::before {
+        background: var(--red);
+      }
+      .pros-cons .pro,
+      .pros-cons .con {
+        margin-bottom: 10px;
+      }
+
+      /* Timeline diagram */
+      .timeline-diagram {
+        background: var(--surface);
+        border-radius: 14px;
+        padding: 20px;
+        margin-bottom: 28px;
+        border: 1px solid #333;
+      }
+      .timeline-diagram h4 {
+        font:
+          700 14px "Inter",
+          sans-serif;
+        margin-bottom: 16px;
+      }
+      .tl-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .tl-label {
+        width: 80px;
+        font:
+          600 11px "Inter",
+          sans-serif;
+        color: var(--text-dim);
+        text-align: right;
+      }
+      .tl-bar-wrap {
+        flex: 1;
+        height: 24px;
+        background: #222;
+        border-radius: 4px;
+        position: relative;
+        overflow: hidden;
+      }
+      .tl-bar {
+        height: 100%;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font:
+          600 9px "Inter",
+          sans-serif;
+        color: #fff;
+      }
+      .tl-bar.detect {
+        background: var(--blue);
+      }
+      .tl-bar.mask {
+        background: var(--orange);
+      }
+      .tl-bar.render {
+        background: #6366f1;
+      }
+      .tl-bar.idle {
+        background: var(--accent);
+      }
+      .tl-savings {
+        font:
+          500 11px "Inter",
+          sans-serif;
+        color: var(--text-light);
+        width: 60px;
+        text-align: center;
+      }
+
+      .verdict-box {
+        background: linear-gradient(135deg, var(--surface), #1a2a1a);
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        border-radius: 14px;
+        padding: 20px;
+        margin-top: 24px;
+      }
+      .verdict-box h4 {
+        font:
+          700 15px "Inter",
+          sans-serif;
+        color: var(--accent);
+        margin-bottom: 8px;
+      }
+      .verdict-box p {
+        font:
+          400 13px/1.6 "Inter",
+          sans-serif;
+        color: var(--text-dim);
+      }
+      .verdict-box ul {
+        margin-top: 10px;
+        padding-left: 0;
+      }
+      .verdict-box li {
+        font:
+          400 12px/1.7 "Inter",
+          sans-serif;
+        color: var(--text-dim);
+        list-style: none;
+        padding-left: 20px;
+        position: relative;
+      }
+      .verdict-box li::before {
+        content: "→";
+        position: absolute;
+        left: 0;
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══ Tab Bar ═══ -->
+    <div class="tab-bar">
+      <button class="active" onclick="showTab('spotter')">
+        A · Spotter Mode
+      </button>
+      <button onclick="showTab('pulse')">B · Pulse Pin</button>
+      <button onclick="showTab('compare')">Comparison</button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     OPTION A — SPOTTER MODE
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-spotter" class="tab-content active">
+      <div class="phone-row">
+        <!-- State 1: Active scanning, new detections -->
+        <div class="phone-col">
+          <h3>Scanning — New Detections</h3>
+          <div class="phone">
+            <div class="camera-feed">
+              <div class="furniture sofa"></div>
+              <div class="furniture table"></div>
+              <div class="furniture lamp"></div>
+              <div class="furniture tv"></div>
+              <div class="furniture plant"></div>
+              <div class="furniture shelf"></div>
+              <div class="furniture rug"></div>
+            </div>
+
+            <div class="status-bar">
+              <span class="time">9:41</span>
+              <span class="icons">📶 🔋</span>
+            </div>
+
+            <!-- HUD -->
+            <div class="spotter-hud">
+              <div class="tally-pill">
+                📦 <span class="count">7</span> items
+              </div>
+              <div class="fps-pill">⚡ 62ms</div>
+              <div class="timer-pill">0:23</div>
+            </div>
+
+            <!-- Toast stack (newest at bottom) -->
+            <div class="toast-stack">
+              <div class="toast-card fading">
+                <span class="toast-check">✓</span>
+                <span class="toast-label">Sofa</span>
+                <span class="toast-time">3s ago</span>
+              </div>
+              <div class="toast-card fading">
+                <span class="toast-check">✓</span>
+                <span class="toast-label">Coffee Table</span>
+                <span class="toast-time">2s ago</span>
+              </div>
+              <div
+                class="toast-card"
+                style="border-color: rgba(16, 185, 129, 0.6)"
+              >
+                <span class="toast-check">✓</span>
+                <span class="toast-label">Floor Lamp</span>
+                <span class="toast-time">now</span>
+              </div>
+            </div>
+
+            <!-- Bottom controls -->
+            <div class="bottom-controls">
+              <button class="ctrl-btn ctrl-secondary">⏸</button>
+              <button class="ctrl-btn ctrl-stop">■</button>
+              <button class="ctrl-btn ctrl-secondary">🔦</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 2: Lingering too long -->
+        <div class="phone-col">
+          <h3>Linger — "Move On" Nudge</h3>
+          <div class="phone">
+            <div class="camera-feed">
+              <div class="furniture sofa"></div>
+              <div class="furniture table"></div>
+              <div class="furniture lamp"></div>
+              <div class="furniture tv"></div>
+              <div class="furniture plant"></div>
+              <div class="furniture shelf"></div>
+              <div class="furniture rug"></div>
+            </div>
+
+            <div class="status-bar">
+              <span class="time">9:41</span>
+              <span class="icons">📶 🔋</span>
+            </div>
+
+            <div class="spotter-hud">
+              <div class="tally-pill">
+                📦 <span class="count">7</span> items
+              </div>
+              <div class="fps-pill">⚡ 58ms</div>
+              <div class="timer-pill">0:31</div>
+            </div>
+
+            <!-- No toasts — lingered too long -->
+            <!-- Linger nudge -->
+            <div class="linger-nudge">
+              <span class="linger-text">Got it — move to next area</span>
+              <span class="linger-arrow">→</span>
+            </div>
+
+            <div class="bottom-controls">
+              <button class="ctrl-btn ctrl-secondary">⏸</button>
+              <button class="ctrl-btn ctrl-stop">■</button>
+              <button class="ctrl-btn ctrl-secondary">🔦</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 3: Camera moved, new area -->
+        <div class="phone-col">
+          <h3>New Area — Fresh Toasts</h3>
+          <div class="phone">
+            <div
+              class="camera-feed"
+              style="
+                background:
+                  radial-gradient(
+                    ellipse at 60% 40%,
+                    #1f1a2d 0%,
+                    transparent 50%
+                  ),
+                  radial-gradient(
+                    ellipse at 30% 70%,
+                    #1a2a20 0%,
+                    transparent 50%
+                  ),
+                  linear-gradient(
+                    135deg,
+                    #1a1a2e 0%,
+                    #2e1a3e 30%,
+                    #1a2e4e 60%,
+                    #1a1a2e 100%
+                  );
+              "
+            >
+              <div
+                class="furniture"
+                style="
+                  left: 40px;
+                  top: 250px;
+                  width: 120px;
+                  height: 110px;
+                  background: #3a2a1a;
+                  border-radius: 4px;
+                "
+              ></div>
+              <div
+                class="furniture"
+                style="
+                  left: 180px;
+                  top: 200px;
+                  width: 80px;
+                  height: 140px;
+                  background: #2a3a2a;
+                  border-radius: 4px;
+                "
+              ></div>
+              <div
+                class="furniture"
+                style="
+                  right: 30px;
+                  top: 350px;
+                  width: 60px;
+                  height: 40px;
+                  background: #4a3a2a;
+                  border-radius: 8px;
+                "
+              ></div>
+              <div
+                class="furniture"
+                style="
+                  left: 60px;
+                  top: 150px;
+                  width: 50px;
+                  height: 50px;
+                  background: #5a4a3a;
+                  border-radius: 50%;
+                "
+              ></div>
+            </div>
+
+            <div class="status-bar">
+              <span class="time">9:41</span>
+              <span class="icons">📶 🔋</span>
+            </div>
+
+            <div class="spotter-hud">
+              <div class="tally-pill">
+                📦 <span class="count">11</span> items
+              </div>
+              <div class="fps-pill">⚡ 55ms</div>
+              <div class="timer-pill">0:38</div>
+            </div>
+
+            <div class="toast-stack">
+              <div class="toast-card fading">
+                <span class="toast-check">✓</span>
+                <span class="toast-label">Bookshelf</span>
+                <span class="toast-time">2s ago</span>
+              </div>
+              <div
+                class="toast-card"
+                style="border-color: rgba(16, 185, 129, 0.6)"
+              >
+                <span class="toast-check">✓</span>
+                <span class="toast-label">Desk</span>
+                <span class="toast-time">now</span>
+              </div>
+              <div
+                class="toast-card"
+                style="border-color: rgba(16, 185, 129, 0.6)"
+              >
+                <span class="toast-check">✓</span>
+                <span class="toast-label">Office Chair</span>
+                <span class="toast-time">now</span>
+              </div>
+            </div>
+
+            <div class="bottom-controls">
+              <button class="ctrl-btn ctrl-secondary">⏸</button>
+              <button class="ctrl-btn ctrl-stop">■</button>
+              <button class="ctrl-btn ctrl-secondary">🔦</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     OPTION B — PULSE PIN MODE
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-pulse" class="tab-content">
+      <div class="phone-row">
+        <!-- State 1: New detections pulsing -->
+        <div class="phone-col">
+          <h3>Active Pins — New Objects</h3>
+          <div class="phone">
+            <div class="camera-feed">
+              <div class="furniture sofa"></div>
+              <div class="furniture table"></div>
+              <div class="furniture lamp"></div>
+              <div class="furniture tv"></div>
+              <div class="furniture plant"></div>
+              <div class="furniture shelf"></div>
+              <div class="furniture rug"></div>
+            </div>
+
+            <div class="status-bar">
+              <span class="time">9:41</span>
+              <span class="icons">📶 🔋</span>
+            </div>
+
+            <!-- Legend -->
+            <div class="pin-legend">
+              <div class="legend-row">
+                <div class="legend-dot" style="background: var(--accent)"></div>
+                New
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background: var(--blue)"></div>
+                Confirmed
+              </div>
+              <div class="legend-row">
+                <div
+                  class="legend-dot"
+                  style="background: var(--text-light)"
+                ></div>
+                Tracked
+              </div>
+            </div>
+
+            <div class="spotter-hud">
+              <div style="width: 1px"></div>
+              <div class="fps-pill">⚡ 62ms</div>
+              <div class="tally-pill">📦 <span class="count">7</span></div>
+            </div>
+
+            <!-- Ghost bboxes (very subtle) -->
+            <div
+              class="ghost-bbox"
+              style="left: 20px; top: 280px; width: 140px; height: 60px"
+            ></div>
+            <div
+              class="ghost-bbox"
+              style="left: 100px; top: 360px; width: 100px; height: 50px"
+            ></div>
+            <div
+              class="ghost-bbox"
+              style="right: 40px; top: 200px; width: 30px; height: 80px"
+            ></div>
+            <div
+              class="ghost-bbox"
+              style="left: 80px; top: 140px; width: 160px; height: 90px"
+            ></div>
+            <div
+              class="ghost-bbox"
+              style="left: 30px; top: 180px; width: 35px; height: 60px"
+            ></div>
+
+            <!-- Pulse pins -->
+            <div class="pulse-pin pin-green" style="left: 85px; top: 298px">
+              <div class="pin-dot new"></div>
+              <div class="pin-label bright">Sofa</div>
+            </div>
+            <div class="pulse-pin pin-green" style="left: 145px; top: 373px">
+              <div class="pin-dot new"></div>
+              <div class="pin-label bright">Table</div>
+            </div>
+            <div class="pulse-pin pin-green" style="right: 47px; top: 228px">
+              <div class="pin-dot new"></div>
+              <div class="pin-label bright">Lamp</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="left: 155px; top: 173px">
+              <div class="pin-dot"></div>
+              <div class="pin-label faded">TV</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="left: 42px; top: 198px">
+              <div class="pin-dot"></div>
+              <div class="pin-label faded">Plant</div>
+            </div>
+
+            <div class="bottom-controls">
+              <button class="ctrl-btn ctrl-secondary">⏸</button>
+              <button class="ctrl-btn ctrl-stop">■</button>
+              <button class="ctrl-btn ctrl-secondary">🔦</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 2: Settled — old pins faded -->
+        <div class="phone-col">
+          <h3>Settled — Labels Faded</h3>
+          <div class="phone">
+            <div class="camera-feed">
+              <div class="furniture sofa"></div>
+              <div class="furniture table"></div>
+              <div class="furniture lamp"></div>
+              <div class="furniture tv"></div>
+              <div class="furniture plant"></div>
+              <div class="furniture shelf"></div>
+              <div class="furniture rug"></div>
+            </div>
+
+            <div class="status-bar">
+              <span class="time">9:41</span>
+              <span class="icons">📶 🔋</span>
+            </div>
+
+            <div class="pin-legend">
+              <div class="legend-row">
+                <div class="legend-dot" style="background: var(--accent)"></div>
+                New
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background: var(--blue)"></div>
+                Confirmed
+              </div>
+              <div class="legend-row">
+                <div
+                  class="legend-dot"
+                  style="background: var(--text-light)"
+                ></div>
+                Tracked
+              </div>
+            </div>
+
+            <div class="spotter-hud">
+              <div style="width: 1px"></div>
+              <div class="fps-pill">⚡ 58ms</div>
+              <div class="tally-pill">📦 <span class="count">7</span></div>
+            </div>
+
+            <!-- All pins faded/tracked -->
+            <div class="pulse-pin pin-blue" style="left: 85px; top: 298px">
+              <div
+                class="pin-dot"
+                style="opacity: 0.5; width: 10px; height: 10px"
+              ></div>
+              <div class="pin-label faded" style="opacity: 0.25">Sofa</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="left: 145px; top: 373px">
+              <div
+                class="pin-dot"
+                style="opacity: 0.5; width: 10px; height: 10px"
+              ></div>
+              <div class="pin-label faded" style="opacity: 0.25">Table</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="right: 47px; top: 228px">
+              <div
+                class="pin-dot"
+                style="opacity: 0.5; width: 10px; height: 10px"
+              ></div>
+              <div class="pin-label faded" style="opacity: 0.25">Lamp</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="left: 155px; top: 173px">
+              <div
+                class="pin-dot"
+                style="opacity: 0.5; width: 10px; height: 10px"
+              ></div>
+              <div class="pin-label faded" style="opacity: 0.25">TV</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="left: 42px; top: 198px">
+              <div
+                class="pin-dot"
+                style="opacity: 0.5; width: 10px; height: 10px"
+              ></div>
+              <div class="pin-label faded" style="opacity: 0.25">Plant</div>
+            </div>
+
+            <!-- Linger nudge -->
+            <div class="linger-nudge">
+              <span class="linger-text">All captured — move on</span>
+              <span class="linger-arrow">→</span>
+            </div>
+
+            <div class="bottom-controls">
+              <button class="ctrl-btn ctrl-secondary">⏸</button>
+              <button class="ctrl-btn ctrl-stop">■</button>
+              <button class="ctrl-btn ctrl-secondary">🔦</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- State 3: New area -->
+        <div class="phone-col">
+          <h3>New Area — Fresh Pins</h3>
+          <div class="phone">
+            <div
+              class="camera-feed"
+              style="
+                background:
+                  radial-gradient(
+                    ellipse at 60% 40%,
+                    #1f1a2d 0%,
+                    transparent 50%
+                  ),
+                  radial-gradient(
+                    ellipse at 30% 70%,
+                    #1a2a20 0%,
+                    transparent 50%
+                  ),
+                  linear-gradient(
+                    135deg,
+                    #1a1a2e 0%,
+                    #2e1a3e 30%,
+                    #1a2e4e 60%,
+                    #1a1a2e 100%
+                  );
+              "
+            >
+              <div
+                class="furniture"
+                style="
+                  left: 40px;
+                  top: 250px;
+                  width: 120px;
+                  height: 110px;
+                  background: #3a2a1a;
+                  border-radius: 4px;
+                "
+              ></div>
+              <div
+                class="furniture"
+                style="
+                  left: 180px;
+                  top: 200px;
+                  width: 80px;
+                  height: 140px;
+                  background: #2a3a2a;
+                  border-radius: 4px;
+                "
+              ></div>
+              <div
+                class="furniture"
+                style="
+                  right: 30px;
+                  top: 350px;
+                  width: 60px;
+                  height: 40px;
+                  background: #4a3a2a;
+                  border-radius: 8px;
+                "
+              ></div>
+              <div
+                class="furniture"
+                style="
+                  left: 60px;
+                  top: 150px;
+                  width: 50px;
+                  height: 50px;
+                  background: #5a4a3a;
+                  border-radius: 50%;
+                "
+              ></div>
+            </div>
+
+            <div class="status-bar">
+              <span class="time">9:41</span>
+              <span class="icons">📶 🔋</span>
+            </div>
+
+            <div class="pin-legend">
+              <div class="legend-row">
+                <div class="legend-dot" style="background: var(--accent)"></div>
+                New
+              </div>
+              <div class="legend-row">
+                <div class="legend-dot" style="background: var(--blue)"></div>
+                Confirmed
+              </div>
+              <div class="legend-row">
+                <div
+                  class="legend-dot"
+                  style="background: var(--text-light)"
+                ></div>
+                Tracked
+              </div>
+            </div>
+
+            <div class="spotter-hud">
+              <div style="width: 1px"></div>
+              <div class="fps-pill">⚡ 55ms</div>
+              <div class="tally-pill">📦 <span class="count">11</span></div>
+            </div>
+
+            <!-- Ghost bboxes -->
+            <div
+              class="ghost-bbox"
+              style="left: 40px; top: 250px; width: 120px; height: 110px"
+            ></div>
+            <div
+              class="ghost-bbox"
+              style="left: 180px; top: 200px; width: 80px; height: 140px"
+            ></div>
+            <div
+              class="ghost-bbox"
+              style="right: 30px; top: 350px; width: 60px; height: 40px"
+            ></div>
+
+            <!-- New pins pulsing -->
+            <div class="pulse-pin pin-green" style="left: 95px; top: 293px">
+              <div class="pin-dot new"></div>
+              <div class="pin-label bright">Desk</div>
+            </div>
+            <div class="pulse-pin pin-green" style="left: 215px; top: 258px">
+              <div class="pin-dot new"></div>
+              <div class="pin-label bright">Bookshelf</div>
+            </div>
+            <div class="pulse-pin pin-green" style="right: 52px; top: 358px">
+              <div class="pin-dot new"></div>
+              <div class="pin-label bright">Chair</div>
+            </div>
+            <div class="pulse-pin pin-blue" style="left: 80px; top: 163px">
+              <div class="pin-dot"></div>
+              <div class="pin-label faded">Globe</div>
+            </div>
+
+            <div class="bottom-controls">
+              <button class="ctrl-btn ctrl-secondary">⏸</button>
+              <button class="ctrl-btn ctrl-stop">■</button>
+              <button class="ctrl-btn ctrl-secondary">🔦</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+     COMPARISON PAGE
+     ═══════════════════════════════════════════════════════════════════ -->
+    <div id="tab-compare" class="tab-content">
+      <div class="comparison">
+        <h2>UX Strategy Comparison</h2>
+        <p class="sub">
+          Performance & experience analysis for BundleBox real-time scanning
+        </p>
+
+        <!-- Recommendation Banner -->
+        <div class="rec-banner">
+          <h3>⭐ Recommendation: Spotter Mode (Option A)</h3>
+          <p>
+            Spotter Mode is the right choice because your core problem is
+            <strong>inference latency</strong>, not visual fidelity. The user
+            doesn't need to see <em>where</em> each object is — they need to
+            know the AI <em>saw</em> it. Toasts communicate acknowledgment
+            instantly. Pulse Pins look fancier but re-introduce per-frame
+            rendering overhead, bbox dependency, and visual clutter — the same
+            problems you're solving.
+          </p>
+        </div>
+
+        <!-- Side by side metrics -->
+        <div class="compare-grid">
+          <div class="compare-card recommended">
+            <h4>A · Spotter Mode <span class="badge">Recommended</span></h4>
+            <div class="metric-row">
+              <span class="metric-label">Canvas overlay</span
+              ><span class="metric-val good">None</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Frame store (memory)</span
+              ><span class="metric-val good">Not needed</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">MobileSAM</span
+              ><span class="metric-val good">Removed</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Per-frame drawing</span
+              ><span class="metric-val good">Zero</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Video smoothness</span
+              ><span class="metric-val good">Native 30fps</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Cognitive load</span
+              ><span class="metric-val good">Low — read list</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Implementation effort</span
+              ><span class="metric-val good">Simple</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Works while panning</span
+              ><span class="metric-val good">Yes — text is stable</span>
+            </div>
+
+            <div class="pros-cons">
+              <h5>Strengths</h5>
+              <ul class="pro">
+                <li>Maximum FPS — no rendering overhead at all</li>
+                <li>Clean, distraction-free camera view</li>
+                <li>User scans the room, not the screen</li>
+                <li>Toasts readable even during fast camera movement</li>
+                <li>Trivial to implement — just DOM elements, no canvas</li>
+                <li>Linger nudge creates natural scanning rhythm</li>
+              </ul>
+              <h5>Tradeoffs</h5>
+              <ul class="con">
+                <li>No spatial indication of where objects are</li>
+                <li>Less "AR-like" — may feel less tech-impressive in demos</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="compare-card">
+            <h4>B · Pulse Pin</h4>
+            <div class="metric-row">
+              <span class="metric-label">Canvas overlay</span
+              ><span class="metric-val mid">Minimal dots</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Frame store (memory)</span
+              ><span class="metric-val mid">Still needed</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">MobileSAM</span
+              ><span class="metric-val good">Removed</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Per-frame drawing</span
+              ><span class="metric-val mid">Pin positions</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Video smoothness</span
+              ><span class="metric-val mid">Synced — lower FPS</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Cognitive load</span
+              ><span class="metric-val mid">Medium — scan dots</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Implementation effort</span
+              ><span class="metric-val mid">Moderate</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Works while panning</span
+              ><span class="metric-val bad">Pins lag / jitter</span>
+            </div>
+
+            <div class="pros-cons">
+              <h5>Strengths</h5>
+              <ul class="pro">
+                <li>Spatial context — user sees where objects are</li>
+                <li>AR feel — looks impressive in demos/videos</li>
+                <li>Visual confirmation that the right object was tagged</li>
+              </ul>
+              <h5>Tradeoffs</h5>
+              <ul class="con">
+                <li>Still needs synced mode — pins must align to frame</li>
+                <li>Pin jitter during camera pan is distracting</li>
+                <li>
+                  More complex: pin lifecycle, fade states, position tracking
+                </li>
+                <li>
+                  Bbox coordinates still required — can't skip detection
+                  rendering
+                </li>
+                <li>Memory overhead from frame store persists</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Timeline Comparison -->
+        <div class="timeline-diagram">
+          <h4>Per-Frame Time Budget Comparison</h4>
+
+          <div
+            style="
+              font:
+                600 11px &quot;Inter&quot;,
+                sans-serif;
+              color: var(--text-dim);
+              margin-bottom: 12px;
+            "
+          >
+            CURRENT (Synced + MobileSAM)
+          </div>
+          <div class="tl-row">
+            <div class="tl-label">Frame</div>
+            <div class="tl-bar-wrap">
+              <div class="tl-bar detect" style="width: 30%">Florence 60ms</div>
+              <div class="tl-bar mask" style="width: 45%; margin-left: 30%">
+                SAM 120ms
+              </div>
+              <div class="tl-bar render" style="width: 10%; margin-left: 75%">
+                Draw 15ms
+              </div>
+            </div>
+            <div class="tl-savings" style="color: var(--red)">~200ms</div>
+          </div>
+
+          <div
+            style="
+              font:
+                600 11px &quot;Inter&quot;,
+                sans-serif;
+              color: var(--text-dim);
+              margin: 16px 0 12px;
+            "
+          >
+            OPTION B — Pulse Pin
+          </div>
+          <div class="tl-row">
+            <div class="tl-label">Frame</div>
+            <div class="tl-bar-wrap">
+              <div class="tl-bar detect" style="width: 30%">Florence 60ms</div>
+              <div class="tl-bar render" style="width: 5%; margin-left: 30%">
+                Pin 5ms
+              </div>
+            </div>
+            <div class="tl-savings" style="color: var(--orange)">~65ms</div>
+          </div>
+
+          <div
+            style="
+              font:
+                600 11px &quot;Inter&quot;,
+                sans-serif;
+              color: var(--text-dim);
+              margin: 16px 0 12px;
+            "
+          >
+            OPTION A — Spotter Mode (Recommended)
+          </div>
+          <div class="tl-row">
+            <div class="tl-label">Frame</div>
+            <div class="tl-bar-wrap">
+              <div class="tl-bar detect" style="width: 30%">Florence 60ms</div>
+              <div class="tl-bar idle" style="width: 70%; margin-left: 30%">
+                Idle — native video
+              </div>
+            </div>
+            <div class="tl-savings" style="color: var(--accent)">~60ms</div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-label" style="color: var(--accent)">+ throttle</div>
+            <div class="tl-bar-wrap">
+              <div class="tl-bar detect" style="width: 15%">60ms</div>
+              <div class="tl-bar idle" style="width: 85%; margin-left: 15%">
+                Skip (scene unchanged)
+              </div>
+            </div>
+            <div class="tl-savings" style="color: var(--accent)">~20ms avg</div>
+          </div>
+        </div>
+
+        <!-- Verdict -->
+        <div class="verdict-box">
+          <h4>Why Spotter Mode Wins</h4>
+          <p>
+            Your stated goal:
+            <em>"We want to tell the user I see this object, that's it."</em>
+          </p>
+          <p style="margin-top: 8px">
+            Spotter Mode is a direct translation of that requirement into UX:
+          </p>
+          <ul>
+            <li>
+              <strong>Eliminates all rendering overhead</strong> — no canvas, no
+              frame store, no synced mode. Video plays at native speed.
+            </li>
+            <li>
+              <strong>Faster perceived performance</strong> — user sees smooth
+              30fps camera feed instead of choppy synced frames. The app feels
+              instant even though inference speed is unchanged.
+            </li>
+            <li>
+              <strong>Toasts work during motion</strong> — bbox pins jitter and
+              lag during camera pan. Text notifications don't. Your users will
+              be panning constantly.
+            </li>
+            <li>
+              <strong>Guides the user</strong> — the "move on" nudge creates a
+              natural scanning cadence. Users finish faster with better
+              coverage.
+            </li>
+            <li>
+              <strong>Client-side throttling becomes trivial</strong> — since
+              there's no visual sync needed, you can freely skip frames when the
+              scene is static. 3-5x fewer inference calls.
+            </li>
+            <li>
+              <strong>Simpler code, fewer bugs</strong> — removes frame store,
+              velocity interpolation, mask rendering, synced mode compositing.
+              ~200 lines of JS deleted.
+            </li>
+          </ul>
+          <p style="margin-top: 12px">
+            Pulse Pin is the better choice <em>only</em> if spatial AR is a core
+            selling point for investors. For actual user utility, Spotter Mode
+            is superior.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function showTab(name) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((t) => t.classList.remove("active"));
+        document
+          .querySelectorAll(".tab-bar button")
+          .forEach((b) => b.classList.remove("active"));
+        document.getElementById("tab-" + name).classList.add("active");
+        // Find which button to activate
+        const labels = { spotter: 0, pulse: 1, compare: 2 };
+        document
+          .querySelectorAll(".tab-bar button")
+          [labels[name]].classList.add("active");
+      }
+
+      // Auto-animate toasts in Spotter Mode
+      function animateToasts() {
+        const stacks = document.querySelectorAll("#tab-spotter .toast-stack");
+        stacks.forEach((stack) => {
+          const cards = stack.querySelectorAll(".toast-card");
+          cards.forEach((card, i) => {
+            card.style.animationDelay = `${i * 0.3}s`;
+          });
+        });
+      }
+      animateToasts();
+    </script>
+  </body>
+</html>

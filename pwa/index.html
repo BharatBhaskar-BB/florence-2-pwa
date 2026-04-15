@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="theme-color" content="#ffffff" />
@@ -11,7 +14,10 @@
     <link rel="icon" type="image/png" href="favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="style.css" />
     <title>BundleBox</title>
   </head>
@@ -21,18 +27,27 @@
       <div class="ob-pages">
         <div class="ob-page center" id="ob-page-1">
           <div class="ob-icon">📦</div>
-          <h2>Scan Any Room<br>in Seconds</h2>
-          <p>Point your camera and let AI identify every item automatically. No manual counting needed.</p>
+          <h2>Scan Any Room<br />in Seconds</h2>
+          <p>
+            Point your camera and let AI identify every item automatically. No
+            manual counting needed.
+          </p>
         </div>
         <div class="ob-page right" id="ob-page-2">
           <div class="ob-icon ob-green">🤖</div>
-          <h2>AI-Powered<br>Inventory</h2>
-          <p>Florence-2 detects objects in real-time. Gemini 2.0 Flash builds your complete, verified inventory list.</p>
+          <h2>AI-Powered<br />Inventory</h2>
+          <p>
+            Florence-2 detects objects in real-time. Gemini 2.0 Flash builds
+            your complete, verified inventory list.
+          </p>
         </div>
         <div class="ob-page right" id="ob-page-3">
           <div class="ob-icon ob-blue">📋</div>
-          <h2>Share &amp;<br>Export</h2>
-          <p>Download itemized reports, share with your team, or export to your moving management system.</p>
+          <h2>Share &amp;<br />Export</h2>
+          <p>
+            Download itemized reports, share with your team, or export to your
+            moving management system.
+          </p>
         </div>
       </div>
       <div class="ob-footer">
@@ -41,7 +56,9 @@
           <div class="ob-dot" id="ob-dot-2"></div>
           <div class="ob-dot" id="ob-dot-3"></div>
         </div>
-        <button class="btn-primary" id="ob-next-btn" onclick="nextOnboard()">GET STARTED</button>
+        <button class="btn-primary" id="ob-next-btn" onclick="nextOnboard()">
+          GET STARTED
+        </button>
         <button class="btn-ghost" onclick="finishOnboard()">Skip</button>
       </div>
     </div>
@@ -57,7 +74,12 @@
           <span id="h-status-text">Checking...</span>
         </div>
 
-        <button class="scan-hero-btn" id="h-start" disabled onclick="startScan()">
+        <button
+          class="scan-hero-btn"
+          id="h-start"
+          disabled
+          onclick="startScan()"
+        >
           <div class="scan-hero-icon">📷</div>
           <div>
             <div>START ROOM SCAN</div>
@@ -70,7 +92,9 @@
           <div class="feature-card">
             <div class="fc-icon">🔍</div>
             <div class="fc-title">Live Detection</div>
-            <div class="fc-desc">Real-time object detection with Florence-2</div>
+            <div class="fc-desc">
+              Real-time object detection with Florence-2
+            </div>
           </div>
           <div class="feature-card">
             <div class="fc-icon">🧠</div>
@@ -89,7 +113,9 @@
           </div>
         </div>
 
-        <div class="section-label" id="h-recent-label" style="display:none">Recent Scans</div>
+        <div class="section-label" id="h-recent-label" style="display: none">
+          Recent Scans
+        </div>
         <div id="h-recent-list"></div>
       </div>
 
@@ -110,7 +136,11 @@
       </div>
 
       <!-- Settings Bottom Sheet -->
-      <div class="sheet-overlay" id="sheet-overlay" onclick="hideSettings()"></div>
+      <div
+        class="sheet-overlay"
+        id="sheet-overlay"
+        onclick="hideSettings()"
+      ></div>
       <div class="bottom-sheet" id="settings-sheet">
         <div class="sheet-handle"></div>
         <div class="sheet-title">Settings</div>
@@ -141,7 +171,8 @@
             <div class="sr-desc">Camera + detection sync</div>
           </div>
           <select id="h-render">
-            <option value="smooth" selected>Smooth (30fps)</option>
+            <option value="spotter" selected>Spotter (fastest)</option>
+            <option value="smooth">Smooth (30fps)</option>
             <option value="synced">Synced (3fps)</option>
           </select>
         </div>
@@ -164,7 +195,7 @@
           <select id="h-segmentor">
             <option value="none" selected>None (boxes only)</option>
             <option value="mobilesam">MobileSAM</option>
-            <option value="efficientvit-sam">EfficientViT-SAM</option>
+            <option value="sam2-tiny">SAM 2 Tiny</option>
           </select>
         </div>
         <div class="setting-row">
@@ -198,14 +229,25 @@
         <canvas id="s-canvas"></canvas>
         <div class="scan-line active" id="s-scanline"></div>
 
+        <!-- Spotter Mode: sweep line + sparkle particles + scan corners -->
+        <div class="spotter-sweep" id="s-spotter-sweep"></div>
+        <div class="spotter-corners" id="s-spotter-corners"><div class="sc1"></div></div>
+        <div class="spotter-sparkles" id="s-spotter-sparkles"></div>
+        <div class="spotter-scanning-badge" id="s-spotter-badge">
+          <div class="spotter-scan-dot"></div>
+          <span>SCANNING</span>
+        </div>
+
         <!-- Warmup overlay -->
-        <div class="warmup-overlay" id="s-warmup" style="display:none">
+        <div class="warmup-overlay" id="s-warmup" style="display: none">
           <div class="warmup-content">
             <div class="warmup-spinner"></div>
             <div class="warmup-title">Optimizing Model</div>
-            <div class="warmup-sub" id="s-warmup-sub">Compiling for faster inference...</div>
+            <div class="warmup-sub" id="s-warmup-sub">
+              Compiling for faster inference...
+            </div>
             <div class="warmup-progress">
-              <div class="warmup-bar" id="s-warmup-bar" style="width:0%"></div>
+              <div class="warmup-bar" id="s-warmup-bar" style="width: 0%"></div>
             </div>
             <div class="warmup-step" id="s-warmup-step">1 / 3</div>
           </div>
@@ -214,13 +256,31 @@
         <!-- Camera controls (right side) -->
         <div class="camera-controls" id="s-cam-controls">
           <div class="side-ctrl-group">
-            <button class="side-btn" id="s-torch" onclick="toggleTorch()" style="display:none">🔦</button>
-            <span class="side-label" id="s-torch-label" style="display:none">Torch</span>
+            <button
+              class="side-btn"
+              id="s-torch"
+              onclick="toggleTorch()"
+              style="display: none"
+            >
+              🔦
+            </button>
+            <span class="side-label" id="s-torch-label" style="display: none"
+              >Torch</span
+            >
           </div>
-          <div class="side-ctrl-group" id="s-zoom-wrap" style="display:none">
+          <div class="side-ctrl-group" id="s-zoom-wrap" style="display: none">
             <button class="side-btn" id="s-zoom-btn">🔍</button>
             <span class="side-label" id="s-zoom-label">1.0x</span>
-            <input type="range" class="zoom-slider" id="s-zoom" min="1" max="5" step="0.1" value="1" oninput="setZoom(this.value)" />
+            <input
+              type="range"
+              class="zoom-slider"
+              id="s-zoom"
+              min="1"
+              max="5"
+              step="0.1"
+              value="1"
+              oninput="setZoom(this.value)"
+            />
           </div>
         </div>
       </div>
@@ -228,9 +288,24 @@
       <!-- Floating detection bubbles -->
       <div class="bubble-container" id="s-bubbles"></div>
 
+      <!-- Spotter Mode: toast stack + linger nudge -->
+      <div class="spotter-toast-stack" id="s-spotter-toasts"></div>
+      <div class="spotter-linger" id="s-spotter-linger">
+        <span class="linger-text">Got it — move to next area</span>
+        <span class="linger-arrow">→</span>
+      </div>
+
       <div class="scan-footer">
-        <button class="scan-action-btn secondary" id="s-pause" onclick="togglePause()">⏸ Pause</button>
-        <button class="scan-action-btn primary" onclick="finishScan()">✓ Done</button>
+        <button
+          class="scan-action-btn secondary"
+          id="s-pause"
+          onclick="togglePause()"
+        >
+          ⏸ Pause
+        </button>
+        <button class="scan-action-btn primary" onclick="finishScan()">
+          ✓ Done
+        </button>
       </div>
     </div>
 
@@ -263,18 +338,21 @@
         <div class="processing-banner" id="r-processing">
           <div class="proc-spinner"></div>
           <div class="proc-title">Analyzing with Gemini 2.0 Flash...</div>
-          <div class="proc-sub">Building accurate inventory from captured frames</div>
+          <div class="proc-sub">
+            Building accurate inventory from captured frames
+          </div>
         </div>
 
         <!-- Inventory list -->
-        <div id="r-inventory" style="display:none"></div>
-        <div id="r-total" class="results-total" style="display:none"></div>
+        <div id="r-inventory" style="display: none"></div>
+        <div id="r-total" class="results-total" style="display: none"></div>
 
         <!-- Stats detail -->
         <div class="results-stats-detail" id="r-stats"></div>
 
         <div class="powered-by">
-          Detected by <strong>Florence-2</strong> · Verified by <strong>Gemini 2.0 Flash</strong>
+          Detected by <strong>Florence-2</strong> · Verified by
+          <strong>Gemini 2.0 Flash</strong>
         </div>
       </div>
 
@@ -282,7 +360,13 @@
       <div class="results-bottom">
         <button class="rb-btn primary" onclick="goHome()">Scan Again</button>
         <button class="rb-btn outline" onclick="shareResults()">Share</button>
-        <button class="rb-btn outline" id="r-upload-btn" onclick="uploadArtifacts()">Upload</button>
+        <button
+          class="rb-btn outline"
+          id="r-upload-btn"
+          onclick="uploadArtifacts()"
+        >
+          Upload
+        </button>
       </div>
     </div>
 
@@ -293,7 +377,7 @@
         <div id="hist-list">
           <div class="history-empty">
             <div class="he-icon">📋</div>
-            <p>No scans yet.<br>Start your first room scan!</p>
+            <p>No scans yet.<br />Start your first room scan!</p>
           </div>
         </div>
       </div>

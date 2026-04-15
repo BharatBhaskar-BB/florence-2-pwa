@@ -431,3 +431,150 @@ html, body {
 .history-empty { text-align: center; padding: 60px 20px; color: var(--text-dim); }
 .he-icon { font-size: 48px; margin-bottom: 16px; }
 .history-empty p { font-size: 14px; line-height: 1.6; }
+
+/* ── Spotter Mode ────────────────────────────────────────── */
+
+/* Sweep line — subtle green scan pulse */
+.spotter-sweep {
+  position: absolute; inset: 0; z-index: 4;
+  pointer-events: none; overflow: hidden; display: none;
+}
+.spotter-sweep.active { display: block; }
+.spotter-sweep::after {
+  content: '';
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%, rgba(16,185,129,0) 15%,
+    rgba(16,185,129,0.2) 35%, rgba(16,185,129,0.3) 50%,
+    rgba(16,185,129,0.2) 65%, rgba(16,185,129,0) 85%,
+    transparent 100%);
+  box-shadow: 0 0 8px rgba(16,185,129,0.1);
+  animation: spotterSweep 4.5s ease-in-out infinite;
+}
+@keyframes spotterSweep {
+  0%   { top: -2px; opacity: 0; }
+  8%   { opacity: 0.7; }
+  50%  { top: 100%; opacity: 0.4; }
+  51%  { opacity: 0; }
+  100% { top: -2px; opacity: 0; }
+}
+
+/* Corner brackets */
+.spotter-corners {
+  position: absolute; inset: 30px; z-index: 4;
+  pointer-events: none; opacity: 0.2; display: none;
+}
+.spotter-corners.active { display: block; }
+.spotter-corners::before, .spotter-corners::after,
+.spotter-corners .sc1::before, .spotter-corners .sc1::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px;
+  border-color: #10b981; border-style: solid; border-width: 0;
+}
+.spotter-corners::before  { top: 0; left: 0; border-top-width: 1.5px; border-left-width: 1.5px; border-radius: 3px 0 0 0; }
+.spotter-corners::after   { top: 0; right: 0; border-top-width: 1.5px; border-right-width: 1.5px; border-radius: 0 3px 0 0; }
+.spotter-corners .sc1::before { bottom: 0; left: 0; border-bottom-width: 1.5px; border-left-width: 1.5px; border-radius: 0 0 0 3px; }
+.spotter-corners .sc1::after  { bottom: 0; right: 0; border-bottom-width: 1.5px; border-right-width: 1.5px; border-radius: 0 0 3px 0; }
+
+/* Sparkle particles */
+.spotter-sparkles {
+  position: absolute; inset: 0; z-index: 5;
+  pointer-events: none; overflow: hidden; display: none;
+}
+.spotter-sparkles.active { display: block; }
+.spotter-spark {
+  position: absolute;
+  width: 2px; height: 2px;
+  background: transparent; opacity: 0;
+  box-shadow:
+    0 -3px 0 0 rgba(255,255,255,0.7),
+    0  3px 0 0 rgba(255,255,255,0.7),
+   -3px 0 0 0 rgba(255,255,255,0.7),
+    3px 0 0 0 rgba(255,255,255,0.7);
+  filter: blur(0.3px);
+  will-change: transform, opacity;
+}
+@keyframes sparkFade {
+  0%   { opacity: 0; transform: scale(0); }
+  20%  { opacity: 0.7; transform: scale(1); }
+  60%  { opacity: 0.4; transform: scale(0.8); }
+  100% { opacity: 0; transform: scale(0); }
+}
+@keyframes sparkDrift {
+  0%   { opacity: 0; transform: scale(0) translateY(0); }
+  25%  { opacity: 0.6; transform: scale(1) translateY(-4px); }
+  70%  { opacity: 0.3; transform: scale(0.7) translateY(-12px); }
+  100% { opacity: 0; transform: scale(0) translateY(-20px); }
+}
+
+/* Scanning badge */
+.spotter-scanning-badge {
+  position: absolute; top: 50px; left: 12px; z-index: 10;
+  display: none; align-items: center; gap: 6px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  padding: 4px 12px 4px 8px; border-radius: 10px;
+}
+.spotter-scanning-badge.active { display: flex; }
+.spotter-scan-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #10b981;
+  animation: spotterDotPulse 1.5s ease-in-out infinite;
+}
+@keyframes spotterDotPulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.spotter-scanning-badge span {
+  font-size: 10px; font-weight: 600; color: #10b981;
+  letter-spacing: 0.5px; font-family: 'Inter', -apple-system, sans-serif;
+}
+
+/* Toast stack — right side */
+.spotter-toast-stack {
+  position: absolute; bottom: 90px; right: 12px;
+  display: none; flex-direction: column-reverse; gap: 6px;
+  z-index: 10; pointer-events: none; max-height: 200px;
+  overflow: hidden;
+}
+.spotter-toast-stack.active { display: flex; }
+.spotter-toast {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(16,185,129,0.25);
+  padding: 8px 14px; border-radius: 12px;
+  animation: spotterToastIn 0.3s ease-out both;
+  white-space: nowrap;
+}
+.spotter-toast.fresh { border-color: rgba(16,185,129,0.5); }
+.spotter-toast.fading { opacity: 0.35; transition: opacity 0.8s; }
+.spotter-toast-check { color: #10b981; font-size: 14px; }
+.spotter-toast-label { font: 600 13px 'Inter', -apple-system, sans-serif; color: #fff; }
+.spotter-toast-time { font: 400 10px 'Inter', -apple-system, sans-serif; color: #6b7280; margin-left: 4px; }
+@keyframes spotterToastIn {
+  from { transform: translateX(40px); opacity: 0; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+
+/* Linger nudge */
+.spotter-linger {
+  position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
+  display: none; align-items: center; gap: 8px;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px);
+  border: 1px solid rgba(245,158,11,0.35);
+  padding: 10px 20px; border-radius: 14px;
+  z-index: 10; animation: spotterNudgePulse 2s ease-in-out infinite;
+}
+.spotter-linger.active { display: flex; }
+.spotter-linger .linger-text {
+  font: 500 13px 'Inter', -apple-system, sans-serif;
+  color: #f59e0b;
+}
+.spotter-linger .linger-arrow {
+  font-size: 16px;
+  animation: spotterArrowBounce 1.5s ease-in-out infinite;
+}
+@keyframes spotterNudgePulse { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
+@keyframes spotterArrowBounce { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(6px); } }

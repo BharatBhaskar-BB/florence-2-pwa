@@ -12,4 +12,5 @@ python-multipart>=0.0.6
 # Segmentation models
 opencv-python-headless>=4.8.0
 huggingface-hub>=0.20.0
-# MobileSAM + EfficientViT-SAM installed from git in Dockerfile
+# MobileSAM installed from git in Dockerfile
+# SAM 2 installed via pip in Dockerfile
