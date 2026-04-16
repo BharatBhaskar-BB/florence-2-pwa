@@ -13,5 +13,7 @@ python-multipart>=0.0.6
 # Segmentation models
 opencv-python-headless>=4.8.0
 huggingface-hub>=0.20.0
+# Grounding-DINO
+groundingdino-py==0.4.0
 # MobileSAM installed from git in Dockerfile
 # SAM 2 installed via pip in Dockerfile

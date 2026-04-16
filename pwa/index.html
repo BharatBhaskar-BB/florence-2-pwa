@@ -146,6 +146,16 @@
         <div class="sheet-title">Settings</div>
         <div class="setting-row">
           <div>
+            <div class="sr-label">Detection Model</div>
+            <div class="sr-desc">AI model for object detection</div>
+          </div>
+          <select id="h-model">
+            <option value="florence" selected>Florence-2</option>
+            <option value="gdino">GDINO SwinT</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <div>
             <div class="sr-label">Detection Task</div>
             <div class="sr-desc">What the model looks for</div>
           </div>
@@ -227,11 +237,14 @@
       <div class="scan-canvas-wrap">
         <video id="s-video" playsinline muted autoplay></video>
         <canvas id="s-canvas"></canvas>
+        <canvas id="s-spotter-canvas"></canvas>
         <div class="scan-line active" id="s-scanline"></div>
 
         <!-- Spotter Mode: sweep line + sparkle particles + scan corners -->
         <div class="spotter-sweep" id="s-spotter-sweep"></div>
-        <div class="spotter-corners" id="s-spotter-corners"><div class="sc1"></div></div>
+        <div class="spotter-corners" id="s-spotter-corners">
+          <div class="sc1"></div>
+        </div>
         <div class="spotter-sparkles" id="s-spotter-sparkles"></div>
         <div class="spotter-scanning-badge" id="s-spotter-badge">
           <div class="spotter-scan-dot"></div>
@@ -397,6 +410,13 @@
           <span class="nav-icon">⚙️</span>Settings
         </button>
       </div>
+    </div>
+
+    <!-- SW update toast -->
+    <div class="sw-update-toast" id="sw-update-toast">
+      <span class="sw-update-msg">New version available</span>
+      <button class="sw-update-btn" id="sw-update-btn">Refresh</button>
+      <button class="sw-update-dismiss" id="sw-update-dismiss">&times;</button>
     </div>
 
     <script src="app.js"></script>

@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 WORKDIR /app
 
 # Install git (needed for pip git+ installs)
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends git libxcb1 libgl1-mesa-glx libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 
 # Install Python deps (non-torch — torch already in base image)
 COPY requirements.txt .
@@ -40,12 +40,22 @@ p = hf_hub_download(repo_id='dhkim2810/MobileSAM', filename='mobile_sam.pt'); \
 shutil.copy2(p, '/app/weights/mobile_sam.pt'); \
 print('MobileSAM weights cached')"
 
+# Pre-download Grounding-DINO SwinT weights (~593MB)
+RUN mkdir -p /app/weights && python -c "\
+from huggingface_hub import hf_hub_download; \
+import shutil; \
+p = hf_hub_download(repo_id='ShilongLiu/GroundingDINO', filename='groundingdino_swint_ogc.pth'); \
+shutil.copy2(p, '/app/weights/groundingdino_swint_ogc.pth'); \
+print('GDINO SwinT weights cached')"
+
 # Pre-download SAM 2 Tiny weights (~39MB) — only if package installed
 RUN python -c "exec('try:\n from sam2.sam2_image_predictor import SAM2ImagePredictor\n SAM2ImagePredictor.from_pretrained(\"facebook/sam2.1-hiera-tiny\")\n print(\"SAM 2 Tiny weights cached\")\nexcept Exception as e:\n print(f\"Skipping SAM 2 weights: {e}\")')"
 
 # Copy application code
 COPY server.py .
 COPY segmentor.py .
+COPY gdino_detector.py .
+COPY household_items.json .
 COPY pwa/ ./pwa/
 COPY index.html .
 

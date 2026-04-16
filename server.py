@@ -1,8 +1,8 @@
 """
-Florence-2 Detection Server
-============================
-FastAPI backend serving Florence-2-base for object detection
-and Gemini 2.0 Flash for batch inventory.
+Florence-2 + Grounding-DINO Detection Server
+=============================================
+FastAPI backend serving Florence-2-base and Grounding-DINO SwinT
+for object detection, with Gemini 2.0 Flash for batch inventory.
 """
 
 import base64
@@ -81,9 +81,19 @@ print(f"Loaded in {time.time() - t0:.1f}s on {DEVICE} ({DTYPE})")
 WARMUP_THRESHOLD = 3  # torch.compile needs ~3 calls to fully compile
 _inference_count = 0
 
+# ── Grounding-DINO (lazy load — only when first requested) ────────────────────
+import gdino_detector as gdino
+
+try:
+    gdino.ensure_loaded()
+    _gdino_available = True
+except Exception as e:
+    print(f"[GDINO] Not available: {e}")
+    _gdino_available = False
+
 # ── FastAPI App ───────────────────────────────────────────────────────────────
 
-app = FastAPI(title="Florence-2 Detection Server")
+app = FastAPI(title="Florence-2 + GDINO Detection Server")
 
 app.add_middleware(
     CORSMiddleware,
@@ -219,10 +229,12 @@ async def health():
         "status": "ok",
         "device": str(DEVICE),
         "model": MODEL_ID,
+        "models": ["florence", "gdino"] if _gdino_available else ["florence"],
         "segmentors": available_segmentors(),
         "warmup_done": _inference_count >= WARMUP_THRESHOLD,
         "warmup_count": min(_inference_count, WARMUP_THRESHOLD),
         "warmup_total": WARMUP_THRESHOLD,
+        "gdino_available": _gdino_available,
     }
 
 
@@ -269,6 +281,13 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
         "warmup": min(_inference_count, WARMUP_THRESHOLD),
         "warmup_total": WARMUP_THRESHOLD,
     }
+
+
+def sync_detect_gdino(image_b64: str):
+    """Run Grounding-DINO detection synchronously (for use in thread pool)."""
+    img_bytes = base64.b64decode(image_b64)
+    image = Image.open(io.BytesIO(img_bytes)).convert("RGB")
+    return gdino.detect(image)
 
 
 def sync_segment(image_b64: str, bboxes: list, segmentor: str):
@@ -330,9 +349,13 @@ async def ws_detect(websocket: WebSocket):
                 image_b64 = data["image"]
                 task = data.get("task", "<OD>")
                 segmentor = data.get("segmentor", "none")
+                det_model = data.get("model", "florence")
 
-                # Step 1: Detection only — send immediately for low latency
-                result = await asyncio.to_thread(sync_detect, image_b64, task, segmentor)
+                # Step 1: Detection — route to selected model
+                if det_model == "gdino" and _gdino_available:
+                    result = await asyncio.to_thread(sync_detect_gdino, image_b64)
+                else:
+                    result = await asyncio.to_thread(sync_detect, image_b64, task, segmentor)
                 result["frame_id"] = frame_id
 
                 if connected:
@@ -529,7 +552,18 @@ if _ROUTE_PREFIX and _ROUTE_PREFIX not in _prefixes:
 
 def _pwa_file(name, media_type=None):
     path = os.path.join(PWA_DIR, name)
-    return FileResponse(path, media_type=media_type) if media_type else FileResponse(path)
+    # Cache-control: sw.js and manifest must always revalidate;
+    # icons cache for 1 day; JS/CSS use stale-while-revalidate via SW
+    if name == "sw.js":
+        headers = {"Cache-Control": "no-cache, no-store, must-revalidate"}
+    elif name in ("manifest.json",):
+        headers = {"Cache-Control": "no-cache, must-revalidate"}
+    elif name.endswith(".png"):
+        headers = {"Cache-Control": "public, max-age=86400"}
+    else:
+        # JS/CSS: short max-age so browser revalidates, SW handles caching
+        headers = {"Cache-Control": "public, max-age=0, must-revalidate"}
+    return FileResponse(path, media_type=media_type, headers=headers) if media_type else FileResponse(path, headers=headers)
 
 _static_files = {
     "manifest.json": "application/json",
@@ -548,10 +582,13 @@ for _prefix in _prefixes:
             return handler
         app.get(f"{_prefix}/{_name}")(_make_handler())
 
-    # Index page
+    # Index page — must never be cached stale
     def _make_index(prefix=_prefix):
         async def index():
-            return FileResponse(os.path.join(PWA_DIR, "index.html"))
+            return FileResponse(
+                os.path.join(PWA_DIR, "index.html"),
+                headers={"Cache-Control": "no-cache, must-revalidate"},
+            )
         return index
     app.get(f"{_prefix}/" if _prefix else "/")(_make_index())
 

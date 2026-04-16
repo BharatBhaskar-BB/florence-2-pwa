@@ -24,6 +24,8 @@ let lastInventoryResult = null;
 const video = document.getElementById('s-video');
 const canvas = document.getElementById('s-canvas');
 const ctx = canvas.getContext('2d');
+const spotterCanvas = document.getElementById('s-spotter-canvas');
+const spotterCtx = spotterCanvas.getContext('2d');
 const captureCanvas = document.createElement('canvas');
 const captureCtx = captureCanvas.getContext('2d');
 const resizeCanvas = document.createElement('canvas');
@@ -111,9 +113,56 @@ function updateTemporalFilter(frameLabels) {
     return stable;
 }
 
-// ── Init ───────────────────────────────────────────────────────────────────
+// ── Service Worker Registration + Update Flow ─────────────────────────────
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register(BASE_PATH + '/sw.js').catch(() => { });
+    let _refreshing = false;
+
+    // Reload once when a new SW takes control (after user approves update)
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (_refreshing) return;
+        _refreshing = true;
+        window.location.reload();
+    });
+
+    navigator.serviceWorker.register(BASE_PATH + '/sw.js').then(reg => {
+        // Check for updates every 60 seconds (supplement browser's 24h check)
+        setInterval(() => reg.update(), 60000);
+
+        function onNewSW(worker) {
+            // Show update toast when a new SW is installed and waiting
+            const toast = document.getElementById('sw-update-toast');
+            if (!toast) return;
+            toast.classList.add('active');
+            const btn = document.getElementById('sw-update-btn');
+            if (btn) {
+                btn.onclick = () => {
+                    toast.classList.remove('active');
+                    worker.postMessage({ type: 'SKIP_WAITING' });
+                };
+            }
+            const dismiss = document.getElementById('sw-update-dismiss');
+            if (dismiss) {
+                dismiss.onclick = () => toast.classList.remove('active');
+            }
+        }
+
+        // Case 1: new SW already waiting (e.g., installed on previous visit)
+        if (reg.waiting) {
+            onNewSW(reg.waiting);
+        }
+
+        // Case 2: new SW found during this visit
+        reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+                // Only prompt when installed (waiting), and there's an active SW already
+                if (newWorker.state === 'installed' && reg.active) {
+                    onNewSW(newWorker);
+                }
+            });
+        });
+    }).catch(() => { });
 }
 
 // Check if onboarding was already completed
@@ -562,7 +611,8 @@ function sendFrame() {
 
     const task = document.getElementById('h-task').value;
     const segmentor = renderMode === 'spotter' ? 'none' : document.getElementById('h-segmentor').value;
-    ws.send(JSON.stringify({ frame_id: frameId, image: base64, task, segmentor }));
+    const detModel = document.getElementById('h-model').value;
+    ws.send(JSON.stringify({ frame_id: frameId, image: base64, task, segmentor, model: detModel }));
 }
 
 function handleDetectionResult(data) {
@@ -594,9 +644,16 @@ function handleDetectionResult(data) {
     const segActive = segmentor && segmentor !== 'none';
 
     if (renderMode === 'spotter') {
-        // Spotter mode: no canvas drawing at all
+        // Spotter mode: canvas hidden, overlay draws corner brackets
+        const vw = video.videoWidth || 640;
+        const vh = video.videoHeight || 480;
         prevDetection = lastDetection;
-        lastDetection = { bboxes, labels, timestamp: Date.now() };
+        lastDetection = {
+            bboxes, labels, velocity,
+            scaleX: vw / data.image_width,
+            scaleY: vh / data.image_height,
+            timestamp: Date.now(),
+        };
     } else if (renderMode === 'synced') {
         // Store detection info for masks overlay
         lastDetection = {
@@ -822,9 +879,94 @@ function resetBubbles() {
 
 // ── Spotter Mode ───────────────────────────────────────────────────────────
 
+let _spotterRAF = null;
+
+function drawSpotterCorners(sCtx, bboxes, scaleX, scaleY) {
+    const cornerLen = 16;  // length of each corner arm
+    const cornerR = 6;     // curve radius
+    const lineW = 2.5;
+    const color = 'rgba(16,185,129,0.85)';
+    const glow = 'rgba(16,185,129,0.3)';
+
+    sCtx.strokeStyle = color;
+    sCtx.lineWidth = lineW;
+    sCtx.lineCap = 'round';
+    sCtx.shadowColor = glow;
+    sCtx.shadowBlur = 6;
+
+    for (let i = 0; i < bboxes.length; i++) {
+        const [x1, y1, x2, y2] = bboxes[i];
+        const sx = x1 * scaleX, sy = y1 * scaleY;
+        const ex = x2 * scaleX, ey = y2 * scaleY;
+        const r = Math.min(cornerR, (ex - sx) / 4, (ey - sy) / 4);
+        const cl = Math.min(cornerLen, (ex - sx) / 3, (ey - sy) / 3);
+
+        sCtx.beginPath();
+        // Top-left
+        sCtx.moveTo(sx, sy + cl);
+        sCtx.lineTo(sx, sy + r);
+        sCtx.arcTo(sx, sy, sx + r, sy, r);
+        sCtx.lineTo(sx + cl, sy);
+        // Top-right
+        sCtx.moveTo(ex - cl, sy);
+        sCtx.lineTo(ex - r, sy);
+        sCtx.arcTo(ex, sy, ex, sy + r, r);
+        sCtx.lineTo(ex, sy + cl);
+        // Bottom-right
+        sCtx.moveTo(ex, ey - cl);
+        sCtx.lineTo(ex, ey - r);
+        sCtx.arcTo(ex, ey, ex - r, ey, r);
+        sCtx.lineTo(ex - cl, ey);
+        // Bottom-left
+        sCtx.moveTo(sx + cl, ey);
+        sCtx.lineTo(sx + r, ey);
+        sCtx.arcTo(sx, ey, sx, ey - r, r);
+        sCtx.lineTo(sx, ey - cl);
+
+        sCtx.stroke();
+    }
+    sCtx.shadowBlur = 0;
+}
+
+function spotterRenderLoop() {
+    if (!scanning || renderMode !== 'spotter') {
+        _spotterRAF = null;
+        return;
+    }
+    const vw = video.videoWidth || 640;
+    const vh = video.videoHeight || 480;
+    if (spotterCanvas.width !== vw || spotterCanvas.height !== vh) {
+        spotterCanvas.width = vw;
+        spotterCanvas.height = vh;
+    }
+    spotterCtx.clearRect(0, 0, spotterCanvas.width, spotterCanvas.height);
+
+    if (lastDetection && lastDetection.bboxes.length > 0) {
+        const now = Date.now();
+        const age = now - lastDetection.timestamp;
+        let bboxes = lastDetection.bboxes;
+
+        // Interpolate with velocity for smooth tracking
+        if (lastDetection.velocity && age > 0 && age < 500) {
+            const t = age / 1000;
+            bboxes = bboxes.map((bb, i) => {
+                const v = lastDetection.velocity[i];
+                if (!v) return bb;
+                return [bb[0] + v[0] * t, bb[1] + v[1] * t,
+                bb[2] + v[2] * t, bb[3] + v[3] * t];
+            });
+        }
+        drawSpotterCorners(spotterCtx, bboxes, lastDetection.scaleX, lastDetection.scaleY);
+    }
+
+    _spotterRAF = requestAnimationFrame(spotterRenderLoop);
+}
+
 function startSpotterMode() {
     // Hide canvas so native video shows through
     canvas.style.display = 'none';
+    // Show spotter overlay canvas for detection corners
+    spotterCanvas.style.display = 'block';
     // Hide the old scan line (spotter has its own sweep)
     const scanline = document.getElementById('s-scanline');
     if (scanline) scanline.classList.remove('active');
@@ -845,20 +987,26 @@ function startSpotterMode() {
     _spotterLastNewLabel = Date.now();
     _spotterSparkleAlive = 0;
 
-    // Start sparkle spawner — active rate: 3-5 particles, spawn every 500ms
-    _spotterSparkleTimer = setInterval(() => spotterSpawnSparkle(), 500);
-    // Initial burst of 3
-    for (let i = 0; i < 3; i++) setTimeout(() => spotterSpawnSparkle(), i * 200);
+    // Start sparkle spawner — active rate, spawn every 250ms
+    _spotterSparkleTimer = setInterval(() => spotterSpawnSparkle(), 250);
+    // Initial burst of 6
+    for (let i = 0; i < 6; i++) setTimeout(() => spotterSpawnSparkle(), i * 120);
     // Start linger timer
     _spotterLingerTimer = setTimeout(spotterShowLinger, SPOTTER_LINGER_MS);
+
+    // Start spotter corner render loop
+    if (!_spotterRAF) _spotterRAF = requestAnimationFrame(spotterRenderLoop);
 }
 
 function stopSpotterMode() {
     if (_spotterSparkleTimer) { clearInterval(_spotterSparkleTimer); _spotterSparkleTimer = null; }
     if (_spotterLingerTimer) { clearTimeout(_spotterLingerTimer); _spotterLingerTimer = null; }
+    if (_spotterRAF) { cancelAnimationFrame(_spotterRAF); _spotterRAF = null; }
 
     // Restore canvas
     canvas.style.display = '';
+    // Hide spotter overlay canvas
+    spotterCanvas.style.display = 'none';
     const bubbles = document.getElementById('s-bubbles');
     if (bubbles) bubbles.style.display = '';
 
@@ -884,8 +1032,8 @@ function stopSpotterMode() {
 function spotterSpawnSparkle() {
     const container = document.getElementById('s-spotter-sparkles');
     if (!container || !scanning) return;
-    // Cap at 5 alive particles
-    if (_spotterSparkleAlive >= 5) return;
+    // Cap at 12 alive particles
+    if (_spotterSparkleAlive >= 12) return;
 
     const el = document.createElement('div');
     el.className = 'spotter-spark';
@@ -904,13 +1052,13 @@ function spotterSpawnSparkle() {
 }
 
 function spotterBurstSparkles() {
-    // Brief burst of 6-8 sparkles over ~1s when entering new area
+    // Brief burst of 12 sparkles over ~1s when detecting new items
     let count = 0;
     const burst = setInterval(() => {
-        if (count >= 6 || !scanning) { clearInterval(burst); return; }
+        if (count >= 12 || !scanning) { clearInterval(burst); return; }
         spotterSpawnSparkle();
         count++;
-    }, 150);
+    }, 80);
 }
 
 function updateSpotterToasts() {
