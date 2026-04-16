@@ -66,10 +66,11 @@ model = AutoModelForCausalLM.from_pretrained(
 ).to(DEVICE).eval()
 
 # torch.compile for faster inference (warmup on first 2-3 calls)
+# max-autotune enables CUDA graphs, fusing kernel launches across tokens
 if DEVICE.type == "cuda":
     try:
-        model = torch.compile(model, mode="reduce-overhead")
-        print("torch.compile enabled (reduce-overhead mode)")
+        model = torch.compile(model, mode="max-autotune")
+        print("torch.compile enabled (max-autotune mode)")
     except Exception as e:
         print(f"torch.compile failed, running eager: {e}")
 
@@ -255,9 +256,16 @@ def sync_detect(image_b64: str, task: str = "<OD>", segmentor: str = "none"):
     inputs = {k: v.to(DEVICE, DTYPE) if (isinstance(v, torch.Tensor) and v.is_floating_point()) else v.to(DEVICE) if isinstance(v, torch.Tensor) else v for k, v in inputs.items()}
     inputs.pop("attention_mask", None)
 
+    # OD rarely exceeds 200 tokens; dense caption may need more
+    max_tokens = 256 if task == "<OD>" else 512
+
     with torch.no_grad():
         outputs = model.generate(
-            **inputs, max_new_tokens=512, num_beams=1, do_sample=False
+            **inputs,
+            max_new_tokens=max_tokens,
+            num_beams=1,
+            do_sample=False,
+            cache_implementation="static",
         )
 
     result_text = processor.batch_decode(outputs, skip_special_tokens=False)[0]
